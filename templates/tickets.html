@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Daftar Semua Tiket</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center py-10">
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-5xl">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Daftar Semua Tiket</h1>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left text-gray-700 border border-gray-300 rounded-xl">
+                <thead class="bg-purple-100 font-semibold text-gray-800">
+                    <tr>
+                        <th class="px-4 py-3 border-b">ID</th>
+                        <th class="px-4 py-3 border-b">Nama</th>
+                        <th class="px-4 py-3 border-b">Tujuan</th>
+                        <th class="px-4 py-3 border-b">Tanggal</th>
+                        <th class="px-4 py-3 border-b">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tickets %}
+                    <tr class="hover:bg-gray-50 transition duration-200">
+                        <td class="px-4 py-3 border-b">{{ t[0] }}</td>
+                        <td class="px-4 py-3 border-b">{{ t[1] }}</td>
+                        <td class="px-4 py-3 border-b">{{ t[2] }}</td>
+                        <td class="px-4 py-3 border-b">{{ t[3] }}</td>
+                        <td class="px-4 py-3 border-b">
+                            <form action="/tickets/delete/{{ t[0] }}" method="post" onsubmit="return confirm('Yakin ingin menghapus tiket ini?');">
+                                <button type="submit"
+                                        class="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-lg text-xs font-semibold transition duration-200">
+                                    Hapus
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-6 text-center">
+            <a href="/" class="text-blue-600 hover:underline">Kembali</a>
+        </div>
+    </div>
+
+</body>
+</html>
