@@ -1,39 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Form Reschedule</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+{% extends "base.html" %}
 
-    <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">Form Reschedule</h1>
-        <form action="/reschedule" method="post" class="space-y-5">
-            <div>
-                <label class="block text-gray-700 font-semibold mb-1" for="name">Nama</label>
-                <input type="text" id="name" name="name" required
-                       class="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+{% block title %}Reschedule Ticket{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-4">
+                        <i class="fas fa-calendar-alt me-2"></i>Reschedule Ticket
+                    </h2>
+
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">Ticket Information</h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Passenger:</strong></p>
+                                <p class="mb-3">{{ booking[8] }}</p>
+                                
+                                <p class="mb-1"><strong>From:</strong></p>
+                                <p class="mb-3">
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-plane-departure me-1"></i>{{ booking[2] }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>To:</strong></p>
+                                <p class="mb-3">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-plane-arrival me-1"></i>{{ booking[3] }}
+                                    </span>
+                                </p>
+                                
+                                <p class="mb-1"><strong>Current Date:</strong></p>
+                                <p class="mb-3">{{ booking[4] }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" class="needs-validation" novalidate>
+                        <div class="mb-4">
+                            <label for="date" class="form-label">New Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                <input type="date" class="form-control" id="date" name="date" required
+                                    min="{{ now.strftime('%Y-%m-%d') }}">
+                            </div>
+                            <div class="form-text">Please select a new date for your flight.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-calendar-check me-2"></i>Confirm Reschedule
+                            </button>
+                            <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Tickets
+                            </a>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div>
-                <label class="block text-gray-700 font-semibold mb-1" for="destination">Tujuan</label>
-                <input type="text" id="destination" name="destination" required
-                       class="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div>
-                <label class="block text-gray-700 font-semibold mb-1" for="new_date">Tanggal Baru</label>
-                <input type="date" id="new_date" name="new_date" required
-                       class="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <button type="submit"
-                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-300">
-                Reschedule
-            </button>
-        </form>
-        <div class="mt-6 text-center">
-            <a href="/" class="text-blue-600 hover:underline">Kembali</a>
         </div>
     </div>
+</div>
 
-</body>
-</html>
+<script>
+    // Form validation
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %}

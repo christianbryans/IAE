@@ -1,41 +1,99 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Menu Utama</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-blue-100 to-white min-h-screen flex items-center justify-center">
+{% extends "base.html" %}
 
-    <div class="bg-white shadow-xl rounded-2xl p-10 w-full max-w-md text-center">
-        <h1 class="text-3xl font-bold text-blue-700 mb-8">Travel Agent System</h1>
-        <ul class="space-y-4">
-            <li>
-                <a href="/booking"
-                   class="block bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition duration-300">
-                    Booking
-                </a>
-            </li>
-            <li>
-                <a href="/reschedule"
-                   class="block bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-xl transition duration-300">
-                    Reschedule
-                </a>
-            </li>
-            <li>
-                <a href="/riwayat"
-                   class="block bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-xl transition duration-300">
-                    Riwayat Reschedule
-                </a>
-            </li>
-            <li>
-                <a href="/tickets"
-                   class="block bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-xl transition duration-300">
-                    Lihat Semua Tiket
-                </a>
-            </li>
-        </ul>
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-4 mb-4">Your Journey Begins Here</h1>
+        <p class="lead mb-5">Discover amazing destinations and create unforgettable memories</p>
+        <a href="/booking" class="btn btn-primary btn-lg">
+            <i class="fas fa-ticket-alt me-2"></i>Book Your Trip Now
+        </a>
     </div>
+</section>
 
-</body>
-</html>
+<!-- Featured Destinations -->
+<section class="mb-5">
+    <div class="container">
+        <h2 class="text-center mb-4" style="color: var(--primary-color);">Popular Destinations</h2>
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            
+            <!-- Destination Card 1: Bali -->
+            <div class="col">
+                <div class="card h-100">
+                    <img src="https://images.unsplash.com/photo-1537996194471-ffb921d88aa5?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" class="card-img-top" alt="Bali, Indonesia">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">Bali, Indonesia</h5>
+                        <p class="card-text">Experience the perfect blend of culture, beaches, and luxury.</p>
+                        <div class="mt-auto">
+                             <a href="{{ url_for('booking') }}" class="btn btn-primary">Book Now</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Destination Card 2: Tokyo -->
+            <div class="col">
+                <div class="card h-100">
+                    <img src="https://images.unsplash.com/photo-1503891450-6603a07e9de1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" class="card-img-top" alt="Tokyo, Japan">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">Tokyo, Japan</h5>
+                        <p class="card-text">Discover the perfect mix of tradition and innovation.</p>
+                        <div class="mt-auto">
+                            <a href="{{ url_for('booking') }}" class="btn btn-primary">Book Now</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Destination Card 3: Paris -->
+            <div class="col">
+                <div class="card h-100">
+                    <img src="https://images.unsplash.com/photo-1520061501481-49c1cb95052d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" class="card-img-top" alt="Paris, France">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">Paris, France</h5>
+                        <p class="card-text">Experience the city of love and its timeless charm.</p>
+                         <div class="mt-auto">
+                            <a href="{{ url_for('booking') }}" class="btn btn-primary">Book Now</a>
+                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add more destination cards as needed -->
+            
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="mb-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="fas fa-shield-alt fa-3x mb-3 text-primary"></i>
+                    <h4>Secure Booking</h4>
+                    <p>Your information is always protected with our secure booking system.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="fas fa-headset fa-3x mb-3 text-primary"></i>
+                    <h4>24/7 Support</h4>
+                    <p>Our customer service team is always ready to assist you.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="fas fa-calendar-check fa-3x mb-3 text-primary"></i>
+                    <h4>Easy Rescheduling</h4>
+                    <p>Flexible booking options with easy rescheduling.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

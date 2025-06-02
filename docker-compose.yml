@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  gateway:
+    build: ./gateway
+    ports:
+      - "4000:4000"
+    environment:
+      - ORDER_SERVICE_URL=http://order-service:4001
+      - PRODUCT_SERVICE_URL=http://product-service:4002
+      - USER_SERVICE_URL=http://user-service:4003
+      - PAYMENT_SERVICE_URL=http://payment-service:4004
+    depends_on:
+      - order-service
+      - product-service
+      - user-service
+      - payment-service
+
+  order-service:
+    build: ./services/order-service
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+      - DATABASE_URL=postgresql://postgres:postgres@order-db:5432/order_db
+      - PRODUCT_SERVICE_URL=http://product-service:4002
+      - USER_SERVICE_URL=http://user-service:4003
+      - PAYMENT_SERVICE_URL=http://payment-service:4004
+    depends_on:
+      - order-db
+      - product-service
+      - user-service
+      - payment-service
+
+  product-service:
+    build: ./services/product-service
+    ports:
+      - "4002:4002"
+    environment:
+      - PORT=4002
+      - MONGODB_URI=mongodb://product-db:27017/product_db
+    depends_on:
+      - product-db
+
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "4003:4003"
+    environment:
+      - PORT=4003
+      - DATABASE_URL=postgresql://postgres:postgres@user-db:5432/user_db
+    depends_on:
+      - user-db
+
+  payment-service:
+    build: ./services/payment-service
+    ports:
+      - "4004:4004"
+    environment:
+      - PORT=4004
+      - DATABASE_URL=postgresql://postgres:postgres@payment-db:5432/payment_db
+    depends_on:
+      - payment-db
+
+  order-db:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=order_db
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+
+  product-db:
+    image: mongo:6
+    environment:
+      - MONGO_INITDB_DATABASE=product_db
+    volumes:
+      - product-db-data:/data/db
+
+  user-db:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=user_db
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+
+  payment-db:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=payment_db
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+
+volumes:
+  order-db-data:
+  product-db-data:
+  user-db-data:
+  payment-db-data: 

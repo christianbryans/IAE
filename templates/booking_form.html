@@ -1,39 +1,158 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Form Booking</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+{% extends "base.html" %}
 
-    <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">Form Booking</h1>
-        <form action="/booking" method="post" class="space-y-5">
-            <div>
-                <label class="block text-gray-700 font-semibold mb-1" for="name">Nama</label>
-                <input type="text" id="name" name="name" required
-                       class="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+{% block title %}Book a Trip{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-4">
+                        <i class="fas fa-plane-departure me-2"></i>Book Your Trip
+                    </h2>
+                    <form method="POST" class="needs-validation" novalidate id="bookingForm">
+                        <div class="mb-4">
+                            <label for="name" class="form-label">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" class="form-control" id="name" name="name" required
+                                    placeholder="Enter your full name">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="departure_airport" class="form-label">Departure Airport</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-plane-departure"></i></span>
+                                <input type="text" class="form-control" id="departure_airport" name="departure_airport" 
+                                    required placeholder="Search departure airport...">
+                                <input type="hidden" id="departure_airport_code" name="departure_airport_code">
+                            </div>
+                            <div id="departure_suggestions" class="list-group position-absolute" style="z-index: 1000; width: 100%; display: none;"></div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="destination_airport" class="form-label">Destination Airport</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-plane-arrival"></i></span>
+                                <input type="text" class="form-control" id="destination_airport" name="destination_airport" 
+                                    required placeholder="Search destination airport...">
+                                <input type="hidden" id="destination_airport_code" name="destination_airport_code">
+                            </div>
+                            <div id="destination_suggestions" class="list-group position-absolute" style="z-index: 1000; width: 100%; display: none;"></div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="date" class="form-label">Travel Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                <input type="date" class="form-control" id="date" name="date" required
+                                    min="{{ now.strftime('%Y-%m-%d') }}">
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check-circle me-2"></i>Book Now
+                            </button>
+                            <a href="/" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Home
+                            </a>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div>
-                <label class="block text-gray-700 font-semibold mb-1" for="destination">Tujuan</label>
-                <input type="text" id="destination" name="destination" required
-                       class="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div>
-                <label class="block text-gray-700 font-semibold mb-1" for="date">Tanggal</label>
-                <input type="date" id="date" name="date" required
-                       class="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl transition duration-300">
-                Booking
-            </button>
-        </form>
-        <div class="mt-6 text-center">
-            <a href="/" class="text-blue-600 hover:underline">Kembali</a>
         </div>
     </div>
+</div>
 
-</body>
-</html>
+<script>
+    // Form validation
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+
+    // Airport search functionality
+    function setupAirportSearch(inputId, suggestionsId, codeInputId) {
+        const input = document.getElementById(inputId);
+        const suggestions = document.getElementById(suggestionsId);
+        const codeInput = document.getElementById(codeInputId);
+        let timeoutId;
+
+        input.addEventListener('input', function() {
+            clearTimeout(timeoutId);
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                suggestions.style.display = 'none';
+                return;
+            }
+
+            timeoutId = setTimeout(() => {
+                fetch(`/api/airports?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestions.innerHTML = '';
+                        if (data.length > 0) {
+                            data.forEach(airport => {
+                                const item = document.createElement('a');
+                                item.href = '#';
+                                item.className = 'list-group-item list-group-item-action';
+                                item.innerHTML = `
+                                    <div class="d-flex justify-content-between">
+                                        <strong>${airport.name}</strong>
+                                        <small class="text-muted">${airport.code}</small>
+                                    </div>
+                                    <small class="text-muted">${airport.city}</small>
+                                `;
+                                item.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    input.value = `${airport.name} (${airport.code})`;
+                                    codeInput.value = airport.code;
+                                    suggestions.style.display = 'none';
+                                });
+                                suggestions.appendChild(item);
+                            });
+                            suggestions.style.display = 'block';
+                        } else {
+                            suggestions.style.display = 'none';
+                        }
+                    });
+            }, 300);
+        });
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+                suggestions.style.display = 'none';
+            }
+        });
+    }
+
+    // Initialize airport search for both fields
+    setupAirportSearch('departure_airport', 'departure_suggestions', 'departure_airport_code');
+    setupAirportSearch('destination_airport', 'destination_suggestions', 'destination_airport_code');
+
+    // Form submission handler
+    document.getElementById('bookingForm').addEventListener('submit', function(e) {
+        const departureCode = document.getElementById('departure_airport_code').value;
+        const destinationCode = document.getElementById('destination_airport_code').value;
+        
+        if (!departureCode || !destinationCode) {
+            e.preventDefault();
+            alert('Please select both departure and destination airports from the suggestions.');
+        }
+    });
+</script>
+{% endblock %}
