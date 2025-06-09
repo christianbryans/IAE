@@ -13,7 +13,7 @@ def init_db():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Create users table (account information only)
+        # Create users table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,11 +22,12 @@ def init_db():
                 full_name TEXT NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 phone TEXT,
+                address TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # Create bookings table (with passenger information)
+        # Create bookings table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
