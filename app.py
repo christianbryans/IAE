@@ -6,6 +6,7 @@ from airports import get_airport_suggestions
 import sqlite3
 from flask_graphql import GraphQLView
 from schema import schema
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -22,7 +23,7 @@ app.add_url_rule(
 )
 
 # Database setup
-DATABASE = 'data.db'
+DATABASE = os.path.join('data', 'database.db')
 
 def get_db():
     if 'db' not in g:
@@ -809,81 +810,6 @@ def seat_selection():
                          occupied_seats=occupied_seats,
                          selected_seat=selected_seat,
                          user_bookings=user_bookings)
-
-@app.route('/api/bookings', methods=['GET'])
-def get_bookings_api():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT b.*, a.name as airline_name, a.code as airline_code 
-        FROM bookings b 
-        JOIN airlines a ON b.airline_id = a.id
-    ''')
-    bookings = cursor.fetchall()
-    conn.close()
-    
-    result = []
-    for booking in bookings:
-        result.append({
-            'id': booking['id'],
-            'passengerName': booking['passenger_name'],
-            'airline': {
-                'name': booking['airline_name'],
-                'code': booking['airline_code']
-            },
-            'departureAirport': booking['departure_airport'],
-            'destinationAirport': booking['destination_airport'],
-            'bookingDate': booking['booking_date'],
-            'totalPrice': booking['total_price']
-        })
-    return jsonify(result)
-
-@app.route('/api/airlines', methods=['GET'])
-def get_airlines_api():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM airlines')
-    airlines = cursor.fetchall()
-    conn.close()
-    
-    result = []
-    for airline in airlines:
-        result.append({
-            'id': airline['id'],
-            'name': airline['name'],
-            'code': airline['code'],
-            'basePrice': airline['base_price']
-        })
-    return jsonify(result)
-
-@app.route('/api/bookings/<int:booking_id>', methods=['GET'])
-def get_booking_api(booking_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT b.*, a.name as airline_name, a.code as airline_code 
-        FROM bookings b 
-        JOIN airlines a ON b.airline_id = a.id 
-        WHERE b.id = ?
-    ''', (booking_id,))
-    booking = cursor.fetchone()
-    conn.close()
-    
-    if booking is None:
-        return jsonify({'error': 'Booking not found'}), 404
-        
-    return jsonify({
-        'id': booking['id'],
-        'passengerName': booking['passenger_name'],
-        'airline': {
-            'name': booking['airline_name'],
-            'code': booking['airline_code']
-        },
-        'departureAirport': booking['departure_airport'],
-        'destinationAirport': booking['destination_airport'],
-        'bookingDate': booking['booking_date'],
-        'totalPrice': booking['total_price']
-    })
 
 if __name__ == "__main__":
     init_db()
