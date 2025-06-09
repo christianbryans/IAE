@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Select Seat{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">
+                        <i class="fas fa-chair me-2"></i>Select Your Seat
+                    </h2>
+
+                    {% if booking_data %}
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">Flight Information</h5>
+                        <p class="mb-0">
+                            <strong>Passenger:</strong> {{ booking_data[2] }}<br>
+                            <strong>From:</strong> {{ booking_data[3] }} <i class="fas fa-plane"></i> <strong>To:</strong> {{ booking_data[4] }}<br>
+                            <strong>Date:</strong> {{ booking_data[5] }}
+                        </p>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('seat_selection') }}" class="mb-4">
+                        <input type="hidden" name="booking_id" value="{{ booking_data[0] if booking_data else '' }}">
+                        <input type="hidden" name="passenger" value="{{ booking_data[2] if booking_data else '' }}">
+                        
+                        <div class="mb-3">
+                            <label for="seat_number" class="form-label">Select Seat</label>
+                            <div class="seat-map">
+                                <div class="seat-legend mb-3">
+                                    <span class="seat-available"><i class="fas fa-chair"></i> Available</span>
+                                    <span class="seat-selected"><i class="fas fa-chair"></i> Selected</span>
+                                    <span class="seat-occupied"><i class="fas fa-chair"></i> Occupied</span>
+                                </div>
+                                <div class="seat-grid">
+                                    {% set rows = ['A', 'B', 'C', 'D'] %}
+                                    {% for row in rows %}
+                                    <div class="seat-row">
+                                        <div class="row-label">{{ row }}</div>
+                                        {% for col in range(1, 11) %}
+                                        {% set seat_number = row ~ col %}
+                                        {% set is_occupied = seat_number in occupied_seats %}
+                                        <div class="seat">
+                                            <input type="radio" class="btn-check" name="seat_number" 
+                                                   id="seat-{{ seat_number }}" value="{{ seat_number }}"
+                                                   {% if is_occupied %}disabled{% endif %}
+                                                   {% if seat_number == selected_seat %}checked{% endif %}>
+                                            <label class="btn btn-outline-primary seat-btn {% if is_occupied %}occupied{% endif %}" 
+                                                   for="seat-{{ seat_number }}">
+                                                {{ seat_number }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            {% if not booking_data %}
+                            <a href="{{ url_for('booking') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Booking
+                            </a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check me-1"></i>Confirm Seat
+                            </button>
+                        </div>
+                    </form>
+
+                    {% if seat_selection_history %}
+                    <div class="mt-4">
+                        <h4>Seat Selection History</h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Passenger</th>
+                                        <th>Seat</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for selection in seat_selection_history %}
+                                    <tr>
+                                        <td>{{ selection[1] }}</td>
+                                        <td>{{ selection[2] }}</td>
+                                        <td>{{ selection[3] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.seat-map {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.seat-legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.seat-legend span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.seat-available i { color: #0d6efd; }
+.seat-selected i { color: #198754; }
+.seat-occupied i { color: #dc3545; }
+
+.seat-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.seat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.row-label {
+    width: 30px;
+    text-align: center;
+    font-weight: bold;
+    color: #6c757d;
+}
+
+.seat {
+    position: relative;
+}
+
+.seat-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    margin: 2px;
+}
+
+.seat-btn.occupied {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    cursor: not-allowed;
+}
+
+.btn-check:checked + .seat-btn {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+}
+
+.btn-check:disabled + .seat-btn {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="mb-0">Pembatalan Tiket</h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Perhatian:</strong> Pembatalan tiket dapat dikenakan biaya sesuai dengan kebijakan maskapai.
+                    </div>
+                    
+                    {% if booking_data %}
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">Informasi Tiket</h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Penumpang:</strong></p>
+                                <p class="mb-3">{{ booking_data.full_name }}</p>
+                                
+                                <p class="mb-1"><strong>Dari:</strong></p>
+                                <p class="mb-3">
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-plane-departure me-1"></i>{{ booking_data.departure_airport }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Ke:</strong></p>
+                                <p class="mb-3">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-plane-arrival me-1"></i>{{ booking_data.destination_airport }}
+                                    </span>
+                                </p>
+                                
+                                <p class="mb-1"><strong>Tanggal:</strong></p>
+                                <p class="mb-3">{{ booking_data.booking_date }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" class="needs-validation" novalidate id="cancelForm">
+                        <input type="hidden" name="booking_id" value="{{ booking_data.id if booking_data else '' }}">
+                        
+                        <div class="mb-3">
+                            <label for="passenger" class="form-label">Nama Penumpang</label>
+                            <input type="text" class="form-control" id="passenger" name="passenger" 
+                                   value="{{ booking_data.full_name if booking_data else '' }}" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="origin" class="form-label">Dari</label>
+                                    <input type="text" class="form-control" id="origin" name="origin" 
+                                           value="{{ booking_data.departure_airport if booking_data else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="destination" class="form-label">Ke</label>
+                                    <input type="text" class="form-control" id="destination" name="destination" 
+                                           value="{{ booking_data.destination_airport if booking_data else '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="canceled_on" class="form-label">Tanggal Batal</label>
+                            <input type="date" class="form-control" id="canceled_on" name="canceled_on" 
+                                   value="{{ now.strftime('%Y-%m-%d') }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Alasan Pembatalan</label>
+                            <select class="form-select" id="reason" name="reason" required>
+                                <option value="">Pilih alasan pembatalan</option>
+                                <option value="jadwal berubah">Jadwal berubah</option>
+                                <option value="kondisi darurat">Kondisi darurat</option>
+                                <option value="perubahan rencana">Perubahan rencana perjalanan</option>
+                                <option value="masalah teknis">Masalah teknis</option>
+                                <option value="lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                        
+                        <div id="otherReasonDiv" class="mb-3" style="display: none;">
+                            <label for="other_reason" class="form-label">Alasan Lainnya</label>
+                            <input type="text" class="form-control" id="other_reason" name="other_reason">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger" onclick="return confirmCancellation()">
+                                <i class="fas fa-times-circle me-2"></i>Batalkan Tiket
+                            </button>
+                            {% if not booking_data %}
+                            <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Kembali ke Tiket
+                            </a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if cancel_history %}
+            <div class="card mt-4 shadow">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">Riwayat Pembatalan</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Booking ID</th>
+                                    <th>Penumpang</th>
+                                    <th>Rute</th>
+                                    <th>Tanggal Batal</th>
+                                    <th>Alasan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cancel_history %}
+                                <tr>
+                                    <td>{{ item.booking_id }}</td>
+                                    <td>{{ item.passenger_name }}</td>
+                                    <td>{{ item.origin }} → {{ item.destination }}</td>
+                                    <td>{{ item.canceled_on }}</td>
+                                    <td>{{ item.reason }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmCancellation() {
+    return confirm('Apakah Anda yakin ingin membatalkan tiket ini? Tindakan ini tidak dapat dibatalkan.');
+}
+
+document.getElementById('reason').addEventListener('change', function() {
+    const otherReasonDiv = document.getElementById('otherReasonDiv');
+    if (this.value === 'lainnya') {
+        otherReasonDiv.style.display = 'block';
+        document.getElementById('other_reason').required = true;
+    } else {
+        otherReasonDiv.style.display = 'none';
+        document.getElementById('other_reason').required = false;
+    }
+});
+</script>
+
+<style>
+.alert {
+    border-left: 4px solid #0dcaf0;
+}
+
+.alert i {
+    margin-right: 8px;
+}
+
+.btn-danger {
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+    transform: scale(1.02);
+}
+
+.table td {
+    vertical-align: middle;
+}
+</style>
+{% endblock %}
