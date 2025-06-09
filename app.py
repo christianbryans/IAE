@@ -149,68 +149,112 @@ def booking():
 
     return render_template('booking_form.html')
 
-@app.route("/reschedule/<int:booking_id>", methods=["GET", "POST"])
-def reschedule(booking_id):
+@app.route('/reschedule', methods=['GET', 'POST'])
+def reschedule():
     if 'user_id' not in session:
-        flash('Please login to reschedule your ticket', 'warning')
+        flash('Please login first', 'warning')
         return redirect(url_for('login'))
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Get booking details and verify ownership
-    cursor.execute('''
-        SELECT b.*, u.full_name, u.email, u.phone
-        FROM bookings b
-        JOIN users u ON b.user_id = u.id
-        WHERE b.id = ? AND b.user_id = ?
-    ''', (booking_id, session['user_id']))
-    
-    booking = cursor.fetchone()
-    
-    if not booking:
-        conn.close()
-        flash('Ticket not found or you do not have permission to reschedule it', 'danger')
+    booking_id = request.args.get('booking_id')
+    if not booking_id:
+        flash('No booking selected', 'error')
         return redirect(url_for('tickets'))
     
-    if request.method == "POST":
-        new_date = request.form.get('date')
-        
-        if not new_date:
-            flash('Please select a new date', 'danger')
-            return render_template('reschedule_form.html', booking=booking)
-        
-        try:
-            # Update booking date
-            cursor.execute('''
-                UPDATE bookings 
-                SET booking_date = ? 
-                WHERE id = ? AND user_id = ?
-            ''', (new_date, booking_id, session['user_id']))
-            
-            # Record reschedule history
-            cursor.execute('''
-                INSERT INTO reschedule (
-                    booking_id, old_date, new_date, reschedule_date
-                ) VALUES (?, ?, ?, ?)
-            ''', (
-                booking_id, 
-                booking[4],  # old booking date
-                new_date,
-                datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            ))
-            
-            conn.commit()
-            flash('Ticket rescheduled successfully!', 'success')
+    try:
+        # Get booking data
+        booking_data = get_booking_by_id(booking_id)
+        if not booking_data:
+            flash('Booking not found', 'error')
             return redirect(url_for('tickets'))
+        
+        if request.method == 'POST':
+            new_date = request.form.get('new_date')
             
-        except Exception as e:
-            print(f"Error rescheduling ticket: {e}")
-            flash('Error rescheduling ticket', 'danger')
-            return render_template('reschedule_form.html', booking=booking)
+            if not new_date:
+                flash('Please select a new date', 'error')
+                return render_template('reschedule.html', 
+                                     booking_data=booking_data,
+                                     today=datetime.now().strftime('%Y-%m-%d'))
+            
+            try:
+                conn = get_db_connection()
+                cursor = conn.cursor()
+                
+                # First, check if the booking exists and belongs to the user
+                cursor.execute('SELECT * FROM bookings WHERE id = ? AND user_id = ?', 
+                             (booking_id, session['user_id']))
+                booking = cursor.fetchone()
+                
+                if not booking:
+                    flash('Booking not found or you do not have permission to reschedule it', 'error')
+                    return redirect(url_for('tickets'))
+                
+                # Insert reschedule record
+                cursor.execute('''
+                    INSERT INTO reschedule (booking_id, old_date, new_date, reschedule_date)
+                    VALUES (?, ?, ?, ?)
+                ''', (booking_id, booking_data['booking_date'], new_date, datetime.now().strftime('%Y-%m-%d')))
+                
+                # Update booking date
+                cursor.execute('''
+                    UPDATE bookings 
+                    SET booking_date = ?
+                    WHERE id = ? AND user_id = ?
+                ''', (new_date, booking_id, session['user_id']))
+                
+                conn.commit()
+                conn.close()
+                
+                flash('Reschedule successful!', 'success')
+                return redirect(url_for('tickets'))
+            except Exception as e:
+                print(f"Database error during reschedule: {str(e)}")
+                flash(f'Error rescheduling ticket: {str(e)}', 'error')
+                return render_template('reschedule.html', 
+                                     booking_data=booking_data,
+                                     today=datetime.now().strftime('%Y-%m-%d'))
+        
+        # Get reschedule history
+        reschedule_history = get_reschedule_history(session['user_id'])
+        return render_template('reschedule.html', 
+                             booking_data=booking_data, 
+                             reschedule_history=reschedule_history,
+                             today=datetime.now().strftime('%Y-%m-%d'))
     
-    conn.close()
-    return render_template('reschedule_form.html', booking=booking)
+    except Exception as e:
+        print(f"Error in reschedule route: {str(e)}")
+        flash(f'An error occurred: {str(e)}', 'error')
+        return redirect(url_for('tickets'))
+
+def get_reschedule_history(user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT r.id, r.booking_id, r.old_date, r.new_date, b.passenger_name, r.reschedule_date
+            FROM reschedule r
+            JOIN bookings b ON r.booking_id = b.id
+            WHERE b.user_id = ?
+            ORDER BY r.reschedule_date DESC
+        ''', (user_id,))
+        history = cursor.fetchall()
+        conn.close()
+        
+        # Convert to list of dictionaries for easier template access
+        formatted_history = []
+        for record in history:
+            formatted_history.append({
+                'id': record[0],
+                'booking_id': record[1],
+                'old_date': record[2],
+                'new_date': record[3],
+                'passenger_name': record[4],
+                'reschedule_date': record[5]
+            })
+        return formatted_history
+    except Exception as e:
+        print(f"Error fetching reschedule history: {str(e)}")
+        return []
 
 @app.route("/riwayat")
 def riwayat():
@@ -242,7 +286,8 @@ def riwayat():
     cursor.execute('''
         SELECT r.id AS item_id, 'Reschedule' AS type, r.reschedule_date AS date,
                'From ' || r.old_date || ' to ' || r.new_date AS description,
-               NULL AS amount, NULL AS status, NULL AS method, NULL AS reason, NULL AS seat_number
+               NULL AS amount, NULL AS status, NULL AS method, NULL AS reason, NULL AS seat_number,
+               r.booking_id
         FROM reschedule r
         JOIN bookings b ON r.booking_id = b.id
         WHERE b.user_id = ?
@@ -250,21 +295,22 @@ def riwayat():
     reschedules = cursor.fetchall()
     for row in reschedules:
         item = dict(row)
-        item['link'] = url_for('reschedule', booking_id=row['booking_id']) # Link to specific reschedule
+        item['link'] = url_for('reschedule', booking_id=item['booking_id']) # Link to specific reschedule
         all_history.append(item)
 
     # Fetch Cancellation History
     cursor.execute('''
         SELECT c.id AS item_id, 'Cancellation' AS type, c.created_at AS date,
-               'Ticket ' || c.origin || ' to ' || c.destination || ' cancelled due to ' || c.reason AS description,
-               NULL AS amount, NULL AS status, NULL AS method, c.reason AS reason, NULL AS seat_number
+               b.departure_airport || ' to ' || b.destination_airport AS description,
+               NULL AS amount, NULL AS status, NULL AS method, c.reason, NULL AS seat_number
         FROM cancellations c
-        WHERE c.user_id = ?
+        JOIN bookings b ON c.booking_id = b.id
+        WHERE b.user_id = ?
     ''', (user_id,))
     cancellations = cursor.fetchall()
     for row in cancellations:
         item = dict(row)
-        item['link'] = url_for('cancel_ticket') # Link to cancel page (could be more specific if detailed history exists)
+        item['link'] = url_for('cancel_ticket') # Link to cancellation page
         all_history.append(item)
 
     # Fetch Payment History
@@ -273,7 +319,8 @@ def riwayat():
                'Paid Rp' || p.amount || ' via ' || p.method || ' (Status: ' || p.status || ')' AS description,
                p.amount AS amount, p.status AS status, p.method AS method, NULL AS reason, NULL AS seat_number
         FROM payments p
-        WHERE p.user_id = ?
+        JOIN bookings b ON p.booking_id = b.id
+        WHERE b.user_id = ?
     ''', (user_id,))
     payments = cursor.fetchall()
     for row in payments:
@@ -287,7 +334,8 @@ def riwayat():
                'Selected seat ' || s.seat_number || ' for ' || s.passenger_name AS description,
                NULL AS amount, NULL AS status, NULL AS method, NULL AS reason, s.seat_number AS seat_number
         FROM seat_selections s
-        WHERE s.user_id = ?
+        JOIN bookings b ON s.booking_id = b.id
+        WHERE b.user_id = ?
     ''', (user_id,))
     seat_selections = cursor.fetchall()
     for row in seat_selections:
@@ -296,7 +344,19 @@ def riwayat():
         all_history.append(item)
 
     # Sort all history items by date
-    all_history.sort(key=lambda x: datetime.strptime(x['date'].split('.')[0], '%Y-%m-%d %H:%M:%S') if '.' in x['date'] else datetime.strptime(x['date'], '%Y-%m-%d %H:%M:%S'), reverse=True)
+    def parse_date(date_str):
+        try:
+            # Try parsing as datetime first
+            return datetime.strptime(date_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            try:
+                # Try parsing as date
+                return datetime.strptime(date_str, '%Y-%m-%d')
+            except ValueError:
+                # If both fail, return a very old date
+                return datetime.min
+
+    all_history.sort(key=lambda x: parse_date(x['date']), reverse=True)
     
     conn.close()
     
@@ -305,21 +365,20 @@ def riwayat():
 @app.route("/tickets")
 def tickets():
     if 'user_id' not in session:
-        flash('Please login to view your tickets', 'warning')
+        flash('Please login first', 'warning')
         return redirect(url_for('login'))
     
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Get user's tickets with user information
+    # Get user's tickets with passenger name from bookings
     cursor.execute('''
         SELECT b.*, u.email, u.phone
         FROM bookings b
         JOIN users u ON b.user_id = u.id
         WHERE b.user_id = ?
-        ORDER BY b.booking_date DESC
+        ORDER BY b.created_at DESC
     ''', (session['user_id'],))
-    
     tickets = cursor.fetchall()
     conn.close()
     
@@ -528,7 +587,7 @@ def payment():
         }
         
         # Get seat row (first character of seat number)
-        seat_row = booking_data[6][0] if booking_data[6] else 'C'
+        seat_row = booking_data['seat_number'][0] if booking_data['seat_number'] else 'C'
         multiplier = seat_multiplier.get(seat_row, 1.0)
         
         # Calculate final amount
@@ -573,7 +632,20 @@ def get_booking_by_id(booking_id):
     cursor.execute('SELECT * FROM bookings WHERE id = ?', (booking_id,))
     booking = cursor.fetchone()
     conn.close()
-    return booking
+    
+    if booking:
+        # Convert tuple to dictionary with column names
+        return {
+            'id': booking[0],
+            'user_id': booking[1],
+            'passenger_name': booking[2],
+            'departure_airport': booking[3],
+            'destination_airport': booking[4],
+            'booking_date': booking[5],
+            'seat_number': booking[6],
+            'created_at': booking[7]
+        }
+    return None
 
 def get_payment_history(user_id):
     conn = get_db_connection()

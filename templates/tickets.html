@@ -22,6 +22,7 @@
                                     <th>From</th>
                                     <th>To</th>
                                     <th>Date</th>
+                                    <th>Seat</th>
                                     <th>Contact</th>
                                     <th>Actions</th>
                                 </tr>
@@ -43,6 +44,17 @@
                                     </td>
                                     <td>{{ ticket[5] }}</td>
                                     <td>
+                                        {% if ticket[6] %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-chair me-1"></i>{{ ticket[6] }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-exclamation-circle me-1"></i>Not Selected
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         <small>
                                             <i class="fas fa-envelope me-1"></i>{{ ticket[7] }}<br>
                                             <i class="fas fa-phone me-1"></i>{{ ticket[8] }}
@@ -50,6 +62,12 @@
                                     </td>
                                     <td>
                                         <div class="btn-group">
+                                            {% if not ticket[6] %}
+                                            <a href="{{ url_for('seat_selection', booking_id=ticket[0]) }}" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="fas fa-chair me-1"></i>Select Seat
+                                            </a>
+                                            {% else %}
                                             <a href="{{ url_for('reschedule', booking_id=ticket[0]) }}" 
                                                class="btn btn-sm btn-warning">
                                                 <i class="fas fa-calendar-alt me-1"></i>Reschedule
@@ -62,6 +80,7 @@
                                                class="btn btn-sm btn-success">
                                                 <i class="fas fa-money-bill-wave me-1"></i>Refund
                                             </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>

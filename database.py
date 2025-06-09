@@ -42,6 +42,19 @@ def init_db():
             )
         ''')
         
+        # Create reschedule table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS reschedule (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                booking_id INTEGER NOT NULL,
+                old_date DATE NOT NULL,
+                new_date DATE NOT NULL,
+                reschedule_date DATE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (booking_id) REFERENCES bookings (id)
+            )
+        ''')
+        
         # Create seat_selections table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS seat_selections (
@@ -142,6 +155,20 @@ def init_db():
                 cursor.execute('ALTER TABLE payments ADD COLUMN payment_date DATE')
             except sqlite3.OperationalError:
                 pass  # Column already exists
+        
+        # Create reschedule table if it doesn't exist
+        if 'reschedule' not in existing_tables:
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS reschedule (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    booking_id INTEGER NOT NULL,
+                    old_date DATE NOT NULL,
+                    new_date DATE NOT NULL,
+                    reschedule_date DATE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (booking_id) REFERENCES bookings (id)
+                )
+            ''')
         
         conn.commit()
         conn.close()
