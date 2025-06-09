@@ -1,12 +1,40 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
+from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session, g
 from flask_cors import CORS
 from database import get_db_connection, init_db, register_user, get_user_by_username, verify_password
 from datetime import datetime
 from airports import get_airport_suggestions
+import sqlite3
+from flask_graphql import GraphQLView
+from schema import schema
 
 app = Flask(__name__)
 CORS(app)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key
+
+# Add GraphQL endpoint
+app.add_url_rule(
+    '/graphql',
+    view_func=GraphQLView.as_view(
+        'graphql',
+        schema=schema,
+        graphiql=True  # Enable GraphiQL interface
+    )
+)
+
+# Database setup
+DATABASE = 'data.db'
+
+def get_db():
+    if 'db' not in g:
+        g.db = sqlite3.connect(DATABASE)
+        g.db.row_factory = sqlite3.Row
+    return g.db
+
+@app.teardown_appcontext
+def close_db(e=None):
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
 
 @app.context_processor
 def inject_now():
@@ -87,67 +115,73 @@ def booking():
         flash('Please login to book a ticket', 'warning')
         return redirect(url_for('login'))
     
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Get all airlines for the form
+    cursor.execute('SELECT * FROM airlines ORDER BY base_price')
+    airlines = cursor.fetchall()
+    
     if request.method == "POST":
-        # Handle JSON or form data
-        if request.is_json:
-            data = request.get_json()
-            departure_airport = data.get('departure_airport_code')
-            destination_airport = data.get('destination_airport_code')
-            date = data.get('date')
-            passenger_name = data.get('passenger_name')
-        else:
-            departure_airport = request.form.get('departure_airport_code')
-            destination_airport = request.form.get('destination_airport_code')
-            date = request.form.get('date')
-            passenger_name = request.form.get('passenger_name')
+        # Get form data
+        passenger_name = request.form.get('passenger_name')
+        departure = request.form.get('departure_airport_code')
+        destination = request.form.get('destination_airport_code')
+        date = request.form.get('date')
+        airline_id = request.form.get('airline_id')
 
-        if not all([departure_airport, destination_airport, date, passenger_name]):
-            if request.is_json:
-                return jsonify({"error": "All fields are required"}), 400
-            flash("All fields are required", "danger")
-            return redirect(url_for('booking'))
-
+        # Debugging: Print received form data
+        print(f"Received booking data: ")
+        print(f"  User ID: {session['user_id']}")
+        print(f"  Passenger Name: {passenger_name}")
+        print(f"  Departure: {departure}")
+        print(f"  Destination: {destination}")
+        print(f"  Date: {date}")
+        print(f"  Airline ID: {airline_id}")
+        
+        # Validate required fields
+        if not all([passenger_name, departure, destination, date, airline_id]):
+            flash('Please fill in all required fields', 'danger')
+            return render_template('booking_form.html', airlines=airlines, today=datetime.now().strftime('%Y-%m-%d'))
+        
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
+            # Get airline price
+            cursor.execute('SELECT base_price FROM airlines WHERE id = ?', (airline_id,))
+            airline = cursor.fetchone()
+            if not airline:
+                flash('Selected airline not found', 'danger')
+                return render_template('booking_form.html', airlines=airlines, today=datetime.now().strftime('%Y-%m-%d'))
             
-            # Get user information directly from database
-            cursor.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],))
-            user = cursor.fetchone()
+            # Calculate total price (base price + any additional fees)
+            total_price = airline[0]  # base_price
             
-            if not user:
-                conn.close()
-                flash('User not found. Please login again.', 'danger')
-                return redirect(url_for('login'))
-            
+            # Insert booking
             cursor.execute('''
                 INSERT INTO bookings (
-                    user_id, passenger_name, departure_airport, destination_airport, 
-                    booking_date, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?)
-            ''', (
-                user['id'], passenger_name, departure_airport, destination_airport,
-                date, datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            ))
+                    user_id, airline_id, passenger_name, departure_airport, 
+                    destination_airport, booking_date, total_price
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (session['user_id'], airline_id, passenger_name, departure, destination, date, total_price))
             
-            booking_id = cursor.lastrowid # Get the ID of the newly created booking
-
+            # Debug: Print the last inserted row ID
+            booking_id = cursor.lastrowid
+            print(f"Created booking with ID: {booking_id}")
+            
+            # Verify the booking was created
+            cursor.execute('SELECT * FROM bookings WHERE id = ?', (booking_id,))
+            created_booking = cursor.fetchone()
+            print(f"Verified booking: {dict(created_booking) if created_booking else 'Not found'}")
+            
             conn.commit()
-            conn.close()
-
-            if request.is_json:
-                return jsonify({"message": "Booking successful", "booking_id": booking_id}), 200
-            flash("Booking successful! Please select your seat.", "success")
+            flash('Booking successful! Please proceed to seat selection.', 'success')
             return redirect(url_for('seat_selection', booking_id=booking_id))
-
+            
         except Exception as e:
-            print(f"Error creating booking: {e}")
-            if request.is_json:
-                return jsonify({"error": str(e)}), 500
-            flash(f"Error creating booking: {str(e)}", "danger")
-            return redirect(url_for('booking'))
-
-    return render_template('booking_form.html')
+            print(f"Error creating booking: {str(e)}")
+            flash(f'Error creating booking: {str(e)}', 'danger')
+            return render_template('booking_form.html', airlines=airlines, today=datetime.now().strftime('%Y-%m-%d'))
+    
+    return render_template('booking_form.html', airlines=airlines, today=datetime.now().strftime('%Y-%m-%d'))
 
 @app.route('/reschedule', methods=['GET', 'POST'])
 def reschedule():
@@ -177,7 +211,7 @@ def reschedule():
                                      today=datetime.now().strftime('%Y-%m-%d'))
             
             try:
-                conn = get_db_connection()
+                conn = get_db()
                 cursor = conn.cursor()
                 
                 # First, check if the booking exists and belongs to the user
@@ -228,7 +262,7 @@ def reschedule():
 
 def get_reschedule_history(user_id):
     try:
-        conn = get_db_connection()
+        conn = get_db()
         cursor = conn.cursor()
         cursor.execute('''
             SELECT r.id, r.booking_id, r.old_date, r.new_date, b.passenger_name, r.reschedule_date
@@ -263,7 +297,7 @@ def riwayat():
         return redirect(url_for('login'))
     
     user_id = session['user_id']
-    conn = get_db_connection()
+    conn = get_db()
     cursor = conn.cursor()
     
     all_history = []
@@ -368,7 +402,7 @@ def tickets():
         flash('Please login first', 'warning')
         return redirect(url_for('login'))
     
-    conn = get_db_connection()
+    conn = get_db()
     cursor = conn.cursor()
     
     # Get user's tickets with passenger name from bookings
@@ -390,7 +424,7 @@ def delete_ticket(id):
         flash('Please login to delete your ticket', 'warning')
         return redirect(url_for('login'))
     
-    conn = get_db_connection()
+    conn = get_db()
     cursor = conn.cursor()
     
     # Verify ticket ownership
@@ -423,7 +457,7 @@ def cancel_ticket():
         flash('Please login to cancel your ticket', 'warning')
         return redirect(url_for('login'))
 
-    conn = get_db_connection()
+    conn = get_db()
     cursor = conn.cursor()
     
     # Get booking_id from URL parameter
@@ -432,12 +466,11 @@ def cancel_ticket():
     
     if booking_id:
         cursor.execute('''
-            SELECT b.*, u.full_name 
+            SELECT b.* 
             FROM bookings b
-            JOIN users u ON b.user_id = u.id
             WHERE b.id = ? AND b.user_id = ?
         ''', (booking_id, session['user_id']))
-        booking_data = cursor.fetchone()
+        booking_data = dict(cursor.fetchone())
         
         if not booking_data:
             flash('Booking not found or you do not have permission to cancel it.', 'danger')
@@ -445,15 +478,12 @@ def cancel_ticket():
     
     if request.method == 'POST':
         booking_id = request.form['booking_id']
-        passenger_name = request.form['passenger']
-        origin = request.form['origin']
-        destination = request.form['destination']
         reason = request.form['reason']
         canceled_on = request.form['canceled_on']
         user_id = session['user_id']
 
         try:
-            cursor.execute('SELECT id FROM bookings WHERE id = ? AND user_id = ?', (booking_id, user_id))
+            cursor.execute('SELECT id, passenger_name, departure_airport, destination_airport FROM bookings WHERE id = ? AND user_id = ?', (booking_id, user_id))
             existing_booking = cursor.fetchone()
 
             if not existing_booking:
@@ -461,10 +491,10 @@ def cancel_ticket():
             else:
                 cursor.execute('''
                     INSERT INTO cancellations (
-                        booking_id, user_id, passenger_name, origin, destination, 
-                        reason, canceled_on
+                        booking_id, user_id, passenger_name, departure_airport, 
+                        destination_airport, reason, cancelled_on
                     ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (booking_id, user_id, passenger_name, origin, destination, reason, canceled_on))
+                ''', (booking_id, user_id, existing_booking[1], existing_booking[2], existing_booking[3], reason, canceled_on))
                 
                 # Delete the booking after cancellation
                 cursor.execute('DELETE FROM bookings WHERE id = ?', (booking_id,))
@@ -481,7 +511,7 @@ def cancel_ticket():
 
     # Get cancellation history
     cursor.execute('''
-        SELECT c.*, b.departure_airport, b.destination_airport
+        SELECT c.*, b.departure_airport AS origin, b.destination_airport AS destination
         FROM cancellations c
         JOIN bookings b ON c.booking_id = b.id
         WHERE c.user_id = ?
@@ -498,7 +528,7 @@ def refund():
         flash('Please login to request a refund', 'warning')
         return redirect(url_for('login'))
 
-    conn = get_db_connection()
+    conn = get_db()
     cursor = conn.cursor()
     
     # Get booking_id from URL parameter
@@ -507,13 +537,13 @@ def refund():
     
     if booking_id:
         cursor.execute('''
-            SELECT b.*, u.full_name, p.amount
+            SELECT b.*, u.full_name, p.amount as paid_amount
             FROM bookings b
             JOIN users u ON b.user_id = u.id
-            LEFT JOIN payments p ON b.id = p.booking_id
+            LEFT JOIN payments p ON b.id = p.booking_id AND p.status = 'completed'
             WHERE b.id = ? AND b.user_id = ?
         ''', (booking_id, session['user_id']))
-        booking_data = cursor.fetchone()
+        booking_data = dict(cursor.fetchone())
         
         if not booking_data:
             flash('Booking not found or you do not have permission to request refund for it.', 'danger')
@@ -537,9 +567,9 @@ def refund():
                 flash('Booking not found or you do not have permission to request refund for it.', 'danger')
             else:
                 cursor.execute('''
-                    INSERT INTO payments (booking_id, user_id, passenger_name, amount, method, status, paid_on)
+                    INSERT INTO refunds (booking_id, user_id, passenger_name, amount, method, reason, refund_date)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (booking_id, user_id, passenger_name, amount, refund_method, 'pending', refund_date))
+                ''', (booking_id, user_id, passenger_name, amount, refund_method, refund_reason, refund_date))
                 conn.commit()
                 flash('Permintaan refund diajukan!', 'success')
                 return redirect(url_for('tickets'))
@@ -552,16 +582,54 @@ def refund():
 
     # Get refund history
     cursor.execute('''
-        SELECT p.*, b.departure_airport, b.destination_airport
-        FROM payments p
-        JOIN bookings b ON p.booking_id = b.id
-        WHERE p.user_id = ? AND p.status = 'pending'
-        ORDER BY p.created_at DESC
+        SELECT r.id, r.booking_id, r.passenger_name, r.amount, r.reason, r.refund_date, p.method
+        FROM refunds r
+        JOIN bookings b ON r.booking_id = b.id
+        LEFT JOIN payments p ON r.booking_id = p.booking_id
+        WHERE b.user_id = ?
+        ORDER BY r.created_at DESC
     ''', (session['user_id'],))
     refund_history = cursor.fetchall()
     conn.close()
 
-    return render_template('refund.html', refund_history=refund_history, booking_data=booking_data)
+    formatted_refund_history = []
+    for record in refund_history:
+        formatted_refund_history.append({
+            'id': record[0],
+            'booking_id': record[1],
+            'passenger_name': record[2],
+            'amount': record[3],
+            'reason': record[4],
+            'refund_date': record[5],
+            'method': record[6]
+        })
+
+    return render_template('refund.html', refund_history=formatted_refund_history, booking_data=booking_data)
+
+def get_payment_history(user_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT p.id, p.booking_id, p.amount, p.method, p.payment_date, p.status
+        FROM payments p
+        JOIN bookings b ON p.booking_id = b.id
+        WHERE b.user_id = ?
+        ORDER BY p.payment_date DESC
+    ''', (user_id,))
+    history = cursor.fetchall()
+    
+    # Convert to list of dictionaries for easier template access
+    formatted_history = []
+    for record in history:
+        formatted_history.append({
+            'id': record[0],
+            'booking_id': record[1],
+            'amount': record[2],
+            'method': record[3],
+            'payment_date': record[4],
+            'status': record[5]
+        })
+    return formatted_history
 
 @app.route('/payment', methods=['GET', 'POST'])
 def payment():
@@ -570,158 +638,178 @@ def payment():
         return redirect(url_for('login'))
     
     booking_id = request.args.get('booking_id')
-    if booking_id:
-        # Get booking data
-        booking_data = get_booking_by_id(booking_id)
-        if not booking_data:
-            flash('Booking not found', 'error')
-            return redirect(url_for('tickets'))
-        
-        # Calculate payment amount based on route and seat
-        base_price = 1000000  # Base price Rp 1,000,000
-        seat_multiplier = {
-            'A': 1.2,  # Premium seats (front row)
-            'B': 1.1,  # Business seats
-            'C': 1.0,  # Standard seats
-            'D': 0.9   # Economy seats
-        }
-        
-        # Get seat row (first character of seat number)
-        seat_row = booking_data['seat_number'][0] if booking_data['seat_number'] else 'C'
-        multiplier = seat_multiplier.get(seat_row, 1.0)
-        
-        # Calculate final amount
-        amount = int(base_price * multiplier)
-        
-        if request.method == 'POST':
-            payment_method = request.form.get('payment_method')
-            payment_date = request.form.get('payment_date')
-            
-            if not all([payment_method, payment_date]):
-                flash('Please fill in all required fields', 'error')
-                return render_template('payment.html', booking_data=booking_data, amount=amount)
-            
-            try:
-                # Insert payment record
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute('''
-                    INSERT INTO payments (booking_id, amount, method, payment_date)
-                    VALUES (?, ?, ?, ?)
-                ''', (booking_id, amount, payment_method, payment_date))
-                conn.commit()
-                conn.close()
-                
-                flash('Payment successful!', 'success')
-                return redirect(url_for('tickets'))
-            except Exception as e:
-                print(f"Error processing payment: {e}")
-                flash('Error processing payment', 'error')
-                return render_template('payment.html', booking_data=booking_data, amount=amount)
-        
-        # Get payment history
-        payment_history = get_payment_history(session['user_id'])
-        return render_template('payment.html', booking_data=booking_data, amount=amount, payment_history=payment_history)
+    if not booking_id:
+        flash('No booking selected', 'error')
+        return redirect(url_for('tickets'))
     
-    flash('No booking selected', 'error')
-    return redirect(url_for('tickets'))
+    # Get booking data
+    booking_data = get_booking_by_id(booking_id)
+    if not booking_data:
+        flash('Booking not found', 'error')
+        return redirect(url_for('tickets'))
+    
+    # Calculate amount based on seat class
+    base_price = 1000000  # Base price Rp 1,000,000
+    seat_multiplier = {
+        'A': 1.2,  # Premium seats (front row)
+        'B': 1.1,  # Business seats
+        'C': 1.0,  # Standard seats
+        'D': 0.9   # Economy seats
+    }
+    
+    # Get seat row (first character of seat number)
+    seat_row = booking_data['seat_number'][0] if booking_data['seat_number'] else 'C'
+    multiplier = seat_multiplier.get(seat_row, 1.0)
+    
+    # Calculate final amount
+    amount = int(base_price * multiplier)
+    
+    if request.method == 'POST':
+        payment_method = request.form.get('payment_method')
+        
+        if not payment_method:
+            flash('Please select a payment method', 'error')
+            return render_template('payment.html', booking_data=booking_data, amount=amount)
+        
+        try:
+            # Insert payment record with current date
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO payments (booking_id, amount, method, payment_date)
+                VALUES (?, ?, ?, ?)
+            ''', (booking_id, amount, payment_method, datetime.now().strftime('%Y-%m-%d')))
+            conn.commit()
+            
+            flash('Payment successful!', 'success')
+            return redirect(url_for('tickets'))
+        except Exception as e:
+            print(f"Error processing payment: {e}")
+            flash('Error processing payment', 'error')
+            return render_template('payment.html', booking_data=booking_data, amount=amount)
+    
+    # Get payment history for GET requests
+    payment_history = get_payment_history(session['user_id'])
+    return render_template('payment.html', booking_data=booking_data, amount=amount, payment_history=payment_history)
 
 def get_booking_by_id(booking_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM bookings WHERE id = ?', (booking_id,))
-    booking = cursor.fetchone()
-    conn.close()
-    
-    if booking:
-        # Convert tuple to dictionary with column names
-        return {
-            'id': booking[0],
-            'user_id': booking[1],
-            'passenger_name': booking[2],
-            'departure_airport': booking[3],
-            'destination_airport': booking[4],
-            'booking_date': booking[5],
-            'seat_number': booking[6],
-            'created_at': booking[7]
-        }
-    return None
-
-def get_payment_history(user_id):
-    conn = get_db_connection()
+    conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT p.*, b.passenger_name 
-        FROM payments p
-        JOIN bookings b ON p.booking_id = b.id
-        WHERE b.user_id = ?
-        ORDER BY p.payment_date DESC
-    ''', (user_id,))
-    history = cursor.fetchall()
-    conn.close()
-    return history
+        SELECT b.*, a.name as airline_name, a.code as airline_code, a.logo_url as airline_logo
+        FROM bookings b
+        JOIN airlines a ON b.airline_id = a.id
+        WHERE b.id = ?
+    ''', (booking_id,))
+    booking = cursor.fetchone()
+    
+    if booking:
+        # Convert to dictionary with column names
+        return dict(booking)
+    return None
 
-@app.route('/seat', methods=['GET', 'POST'])
+@app.route('/seat_selection', methods=['GET', 'POST'])
 def seat_selection():
     if 'user_id' not in session:
-        flash('Please login first', 'warning')
+        flash('Please login to select your seat', 'warning')
         return redirect(url_for('login'))
     
     booking_id = request.args.get('booking_id')
-    if booking_id:
-        # Get booking data
-        booking_data = get_booking_by_id(booking_id)
-        if not booking_data:
-            flash('Booking not found', 'error')
-            return redirect(url_for('tickets'))
-        
-        if request.method == 'POST':
-            seat_number = request.form.get('seat_number')
-            passenger = request.form.get('passenger')
-            
-            if not seat_number:
-                flash('Please select a seat', 'error')
-                return render_template('seat.html', booking_data=booking_data)
-            
-            try:
-                # Insert seat selection record
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute('''
-                    INSERT INTO seat_selections (booking_id, passenger_name, seat_number, selected_on)
-                    VALUES (?, ?, ?, ?)
-                ''', (booking_id, passenger, seat_number, datetime.now().strftime('%Y-%m-%d')))
-                conn.commit()
-                conn.close()
-                
-                flash('Seat selection successful!', 'success')
-                return redirect(url_for('payment', booking_id=booking_id))
-            except Exception as e:
-                print(f"Error selecting seat: {e}")
-                flash('Error selecting seat', 'error')
-                return render_template('seat.html', booking_data=booking_data)
-        
-        # Get seat selection history
-        seat_selection_history = get_seat_selection_history(session['user_id'])
-        return render_template('seat.html', booking_data=booking_data, seat_selection_history=seat_selection_history)
+    if not booking_id:
+        flash('No booking selected', 'warning')
+        return redirect(url_for('tickets'))
     
-    flash('No booking selected', 'error')
-    return redirect(url_for('tickets'))
-
-def get_seat_selection_history(user_id):
-    conn = get_db_connection()
+    conn = get_db()
     cursor = conn.cursor()
+    
+    # Get booking details with airline information
     cursor.execute('''
-        SELECT ss.*, b.passenger_name 
-        FROM seat_selections ss
-        JOIN bookings b ON ss.booking_id = b.id
+        SELECT b.*, a.name as airline_name, a.code as airline_code, a.logo_url as airline_logo
+        FROM bookings b
+        JOIN airlines a ON b.airline_id = a.id
+        WHERE b.id = ? AND b.user_id = ?
+    ''', (booking_id, session['user_id']))
+    booking = cursor.fetchone()
+    
+    if not booking:
+        conn.close()
+        flash('Booking not found or you do not have permission to select a seat', 'danger')
+        return redirect(url_for('tickets'))
+    
+    # Convert booking to dictionary to access by key
+    booking_dict = dict(booking)
+    
+    # Get occupied seats
+    cursor.execute('''
+        SELECT DISTINCT b.seat_number
+        FROM bookings b
+        LEFT JOIN cancellations c ON b.id = c.booking_id
+        WHERE b.booking_date = ?
+        AND b.seat_number IS NOT NULL
+        AND c.booking_id IS NULL
+        AND b.id != ?
+    ''', (booking_dict['booking_date'], booking_id))
+    occupied_seats = [row[0] for row in cursor.fetchall()]
+    
+    # Get currently selected seat
+    cursor.execute('SELECT seat_number FROM bookings WHERE id = ?', (booking_id,))
+    selected_seat_data = cursor.fetchone()
+    selected_seat = selected_seat_data[0] if selected_seat_data else None
+    
+    # Get user's active bookings for the same date
+    cursor.execute('''
+        SELECT b.id, b.passenger_name, b.seat_number
+        FROM bookings b
+        LEFT JOIN cancellations c ON b.id = c.booking_id
         WHERE b.user_id = ?
-        ORDER BY ss.selected_on DESC
-    ''', (user_id,))
-    history = cursor.fetchall()
+        AND b.booking_date = ?
+        AND c.booking_id IS NULL
+        AND b.id != ?
+        AND b.seat_number IS NOT NULL
+    ''', (session['user_id'], booking_dict['booking_date'], booking_id))
+    user_bookings = [{'id': row[0], 'passenger_name': row[1], 'seat_number': row[2]} for row in cursor.fetchall()]
+    
+    # Debug print
+    print(f"Flight date: {booking_dict['booking_date']}")
+    print(f"Occupied seats received from DB: {occupied_seats}")
+    print(f"Selected seat received from DB: {selected_seat}")
+    print(f"User bookings received from DB: {user_bookings}")
+    
+    if request.method == 'POST':
+        seat_number = request.form.get('seat_number')
+        if not seat_number:
+            flash('Please select a seat', 'warning')
+            return redirect(url_for('seat_selection', booking_id=booking_id))
+        
+        try:
+            # Check if seat is already taken
+            if seat_number in occupied_seats:
+                flash('This seat is already taken', 'warning')
+                return redirect(url_for('seat_selection', booking_id=booking_id))
+            
+            # Update booking with seat number
+            cursor.execute('''
+                UPDATE bookings 
+                SET seat_number = ?
+                WHERE id = ?
+            ''', (seat_number, booking_id))
+            
+            conn.commit()
+            flash('Seat selected successfully! Please proceed to payment.', 'success')
+            return redirect(url_for('payment', booking_id=booking_id))
+            
+        except Exception as e:
+            print(f"Error selecting seat: {str(e)}")
+            flash(f'Error selecting seat: {str(e)}', 'danger')
+            return redirect(url_for('seat_selection', booking_id=booking_id))
+    
     conn.close()
-    return history
+    return render_template('seat_selection.html', 
+                         booking=booking_dict,
+                         occupied_seats=occupied_seats,
+                         selected_seat=selected_seat,
+                         user_bookings=user_bookings)
 
 if __name__ == "__main__":
-    init_db() # Ensure database tables are created
+    init_db()
     app.run(debug=True)

@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Select Your Seat</h3>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <div class="alert alert-info mb-4">
+                        <h5 class="alert-heading">Flight Information</h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Airline:</strong></p>
+                                <p class="mb-3">
+                                    <span class="badge bg-primary">
+                                        {% if booking.airline_logo %}
+                                        <img src="{{ booking.airline_logo }}" alt="{{ booking.airline_name }}" 
+                                             style="height: 20px; margin-right: 5px;">
+                                        {% endif %}
+                                        {{ booking.airline_name }} ({{ booking.airline_code }})
+                                    </span>
+                                </p>
+                                
+                                <p class="mb-1"><strong>From:</strong></p>
+                                <p class="mb-3">
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-plane-departure me-1"></i>{{ booking.departure_airport }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>To:</strong></p>
+                                <p class="mb-3">
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-plane-arrival me-1"></i>{{ booking.destination_airport }}
+                                    </span>
+                                </p>
+                                
+                                <p class="mb-1"><strong>Date:</strong></p>
+                                <p class="mb-3">{{ booking.booking_date }}</p>
+                                
+                                <p class="mb-1"><strong>Price:</strong></p>
+                                <p class="mb-3">
+                                    <span class="h5 text-primary">Rp {{ "{:,}".format(booking.total_price) }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if user_bookings %}
+                    <div class="alert alert-warning mb-4">
+                        <h5 class="alert-heading">Your Booked Seats</h5>
+                        <hr>
+                        <div class="row">
+                            {% for booking in user_bookings %}
+                            <div class="col-md-6 mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="seat occupied me-2">{{ booking.seat_number }}</div>
+                                    <div>
+                                        <strong>{{ booking.passenger_name }}</strong>
+                                        <br>
+                                        <small class="text-muted">Seat {{ booking.seat_number }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" class="needs-validation" novalidate>
+                        <input type="hidden" name="booking_id" value="{{ booking.id }}">
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Available Seats</label>
+                            <div class="seat-map">
+                                <div class="row justify-content-center mb-2">
+                                    <div class="col-auto">
+                                        <div class="seat-legend">
+                                            <span class="seat available"></span> Available
+                                            <span class="seat selected"></span> Selected
+                                            <span class="seat occupied"></span> Booked
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row justify-content-center">
+                                    <div class="col-auto">
+                                        <div class="seat-grid">
+                                            {% for row in range(1, 11) %}
+                                            <div class="seat-row">
+                                                {% for col in ['A', 'B', 'C', 'D'] %}
+                                                {% set seat_number = col ~ row %}
+                                                {% set is_occupied = seat_number in occupied_seats %}
+                                                {% set is_selected = seat_number == selected_seat %}
+                                                <div class="seat {{ 'occupied' if is_occupied else 'selected' if is_selected else 'available' }}"
+                                                     id="seat-{{ seat_number }}"
+                                                     data-seat="{{ seat_number }}"
+                                                     onclick="selectSeat('{{ seat_number }}')">
+                                                    {{ seat_number }}
+                                                    {% if is_occupied %}
+                                                    <span class="seat-status">×</span>
+                                                    {% endif %}
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="seat_number" id="selected_seat" required>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                                <i class="fas fa-check-circle me-2"></i>Confirm Seat Selection
+                            </button>
+                            <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Tickets
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var occupiedSeats = JSON.parse('{{ occupied_seats|tojson }}');
+    var selectedSeat = "{{ selected_seat | default('') }}";
+
+    console.log("Occupied Seats (JS): ", occupiedSeats);
+    console.log("Selected Seat (JS): ", selectedSeat);
+
+    function selectSeat(seatNumber) {
+        // Check if seat is occupied
+        if (occupiedSeats.includes(seatNumber)) {
+            alert('This seat is already taken');
+            return;
+        }
+        
+        // Remove selected class from all seats
+        document.querySelectorAll('.seat').forEach(seat => {
+            seat.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked seat
+        document.getElementById('seat-' + seatNumber).classList.add('selected');
+        
+        // Update hidden input
+        document.getElementById('selected_seat').value = seatNumber;
+        
+        // Enable the submit button
+        document.getElementById('submitBtn').disabled = false;
+    }
+
+    // Form validation
+    (function() {
+        'use strict';
+        var forms = document.querySelectorAll('.needs-validation');
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+
+<style>
+.seat-map {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.seat-legend {
+    margin-bottom: 20px;
+    text-align: center;
+    padding: 10px;
+    background: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.seat-legend .seat {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin: 0 5px;
+    border-radius: 5px;
+}
+
+.seat-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.seat-row {
+    display: flex;
+    gap: 5px;
+}
+
+.seat {
+    width: 40px;
+    height: 40px;
+    margin: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.seat:hover:not(.occupied) {
+    background-color: #e9ecef;
+    border-color: #6c757d;
+}
+
+.seat.selected {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.seat.occupied {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.seat.occupied::after {
+    content: "×";
+    position: absolute;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.seat.occupied:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.seat-status {
+    position: absolute;
+    font-size: 24px;
+    color: white;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+</style>
+{% endblock %} 

@@ -16,23 +16,23 @@
                     <div class="alert alert-info">
                         <h5 class="alert-heading">Booking Information</h5>
                         <p class="mb-0">
-                            <strong>Passenger:</strong> {{ booking_data[2] }}<br>
-                            <strong>From:</strong> {{ booking_data[3] }} <i class="fas fa-plane"></i> <strong>To:</strong> {{ booking_data[4] }}<br>
-                            <strong>Date:</strong> {{ booking_data[5] }}<br>
-                            <strong>Seat:</strong> {{ booking_data[6] }}
+                            <strong>Passenger:</strong> {{ booking_data.passenger_name }}<br>
+                            <strong>From:</strong> {{ booking_data.departure_airport }} <i class="fas fa-plane"></i> <strong>To:</strong> {{ booking_data.destination_airport }}<br>
+                            <strong>Date:</strong> {{ booking_data.booking_date }}<br>
+                            <strong>Seat:</strong> {{ booking_data.seat_number if booking_data.seat_number else 'Not selected yet' }}
                         </p>
                     </div>
                     {% endif %}
 
                     <form method="POST" action="{{ url_for('payment') }}" class="mb-4">
-                        <input type="hidden" name="booking_id" value="{{ booking_data[0] if booking_data else '' }}">
+                        <input type="hidden" name="booking_id" value="{{ booking_data.id if booking_data else '' }}">
                         <input type="hidden" name="amount" value="{{ amount }}">
                         
                         <div class="mb-3">
                             <label class="form-label">Payment Amount</label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="text" class="form-control" value="{{ amount }}" readonly>
+                                <input type="text" class="form-control" value="{{ "{:,}".format(amount) }}" readonly>
                             </div>
                             <small class="text-muted">This amount is automatically calculated based on your booking details.</small>
                         </div>
@@ -46,12 +46,6 @@
                                 <option value="bank_transfer">Bank Transfer</option>
                                 <option value="e_wallet">E-Wallet</option>
                             </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="payment_date" class="form-label">Payment Date</label>
-                            <input type="date" class="form-control" id="payment_date" name="payment_date" 
-                                   value="{{ today }}" required>
                         </div>
 
                         <div class="d-flex justify-content-between">
@@ -83,12 +77,12 @@
                                 <tbody>
                                     {% for payment in payment_history %}
                                     <tr>
-                                        <td>{{ payment[1] }}</td>
-                                        <td>Rp {{ payment[2] }}</td>
-                                        <td>{{ payment[3] }}</td>
-                                        <td>{{ payment[4] }}</td>
+                                        <td>{{ payment.booking_id }}</td>
+                                        <td>Rp {{ "{:,}".format(payment.amount) }}</td>
+                                        <td>{{ payment.method }}</td>
+                                        <td>{{ payment.payment_date }}</td>
                                         <td>
-                                            <span class="badge bg-success">Completed</span>
+                                            <span class="badge bg-success">{{ payment.status }}</span>
                                         </td>
                                     </tr>
                                     {% endfor %}

@@ -4,174 +4,90 @@ import os
 from werkzeug.security import generate_password_hash, check_password_hash
 
 def get_db_connection():
-    conn = sqlite3.connect("data.db")
+    db_path = os.path.join('data', 'database.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
-    if not os.path.exists('data.db'):
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Create users table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                full_name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                phone TEXT,
-                address TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Create bookings table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS bookings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                passenger_name TEXT NOT NULL,
-                departure_airport TEXT NOT NULL,
-                destination_airport TEXT NOT NULL,
-                travel_date DATE NOT NULL,
-                seat_number TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        # Create reschedule table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS reschedule (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                booking_id INTEGER NOT NULL,
-                old_date DATE NOT NULL,
-                new_date DATE NOT NULL,
-                reschedule_date DATE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (booking_id) REFERENCES bookings (id)
-            )
-        ''')
-        
-        # Create seat_selections table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS seat_selections (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                booking_id INTEGER NOT NULL,
-                passenger_name TEXT NOT NULL,
-                seat_number TEXT NOT NULL,
-                selected_on DATE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (booking_id) REFERENCES bookings (id)
-            )
-        ''')
-        
-        # Create payments table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS payments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                booking_id INTEGER NOT NULL,
-                amount INTEGER NOT NULL,
-                method TEXT NOT NULL,
-                payment_date DATE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (booking_id) REFERENCES bookings (id)
-            )
-        ''')
-        
-        # Create cancellations table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS cancellations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                booking_id INTEGER NOT NULL,
-                passenger_name TEXT NOT NULL,
-                departure_airport TEXT NOT NULL,
-                destination_airport TEXT NOT NULL,
-                reason TEXT NOT NULL,
-                cancelled_on DATE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (booking_id) REFERENCES bookings (id)
-            )
-        ''')
-        
-        # Create refunds table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS refunds (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                booking_id INTEGER NOT NULL,
-                passenger_name TEXT NOT NULL,
-                amount INTEGER NOT NULL,
-                reason TEXT NOT NULL,
-                refund_date DATE NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (booking_id) REFERENCES bookings (id)
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-    else:
-        # Database exists, check for schema updates
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Get list of existing tables
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        existing_tables = [table[0] for table in cursor.fetchall()]
-        
-        # Add new columns to existing tables if they don't exist
-        if 'users' in existing_tables:
-            try:
-                cursor.execute('ALTER TABLE users ADD COLUMN phone TEXT')
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-        
-        if 'bookings' in existing_tables:
-            try:
-                cursor.execute('ALTER TABLE bookings ADD COLUMN passenger_name TEXT')
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-            
-            try:
-                cursor.execute('ALTER TABLE bookings ADD COLUMN seat_number TEXT')
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-        
-        if 'seat_selections' in existing_tables:
-            try:
-                cursor.execute('ALTER TABLE seat_selections ADD COLUMN passenger_name TEXT')
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-        
-        if 'payments' in existing_tables:
-            try:
-                cursor.execute('ALTER TABLE payments ADD COLUMN amount INTEGER')
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-            
-            try:
-                cursor.execute('ALTER TABLE payments ADD COLUMN payment_date DATE')
-            except sqlite3.OperationalError:
-                pass  # Column already exists
-        
-        # Create reschedule table if it doesn't exist
-        if 'reschedule' not in existing_tables:
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS reschedule (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    booking_id INTEGER NOT NULL,
-                    old_date DATE NOT NULL,
-                    new_date DATE NOT NULL,
-                    reschedule_date DATE NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (booking_id) REFERENCES bookings (id)
-                )
-            ''')
-        
-        conn.commit()
-        conn.close()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Create users table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            full_name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            phone TEXT,
+            address TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Create airlines table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS airlines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            code TEXT UNIQUE NOT NULL,
+            logo_url TEXT,
+            base_price INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Create bookings table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            airline_id INTEGER NOT NULL,
+            passenger_name TEXT NOT NULL,
+            departure_airport TEXT NOT NULL,
+            destination_airport TEXT NOT NULL,
+            booking_date DATE NOT NULL,
+            seat_number TEXT,
+            total_price INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (airline_id) REFERENCES airlines (id)
+        )
+    ''')
+    
+    # Create payments table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            booking_id INTEGER NOT NULL,
+            amount INTEGER NOT NULL,
+            method TEXT NOT NULL,
+            status TEXT NOT NULL,
+            payment_date DATE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (booking_id) REFERENCES bookings (id)
+        )
+    ''')
+    
+    # Create cancellations table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS cancellations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            booking_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            refund_amount INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (booking_id) REFERENCES bookings (id),
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
 
 def register_user(username, password, full_name, email, phone=None):
     conn = get_db_connection()
@@ -304,3 +220,6 @@ def get_refund_history(user_id):
     history = cursor.fetchall()
     conn.close()
     return history
+
+if __name__ == '__main__':
+    init_db()

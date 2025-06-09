@@ -21,7 +21,7 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <p class="mb-1"><strong>Penumpang:</strong></p>
-                                <p class="mb-3">{{ booking_data.full_name }}</p>
+                                <p class="mb-3">{{ booking_data.passenger_name }}</p>
                                 
                                 <p class="mb-1"><strong>Dari:</strong></p>
                                 <p class="mb-3">
@@ -47,12 +47,6 @@
                     
                     <form method="post" class="needs-validation" novalidate id="cancelForm">
                         <input type="hidden" name="booking_id" value="{{ booking_data.id if booking_data else '' }}">
-                        
-                        <div class="mb-3">
-                            <label for="passenger" class="form-label">Nama Penumpang</label>
-                            <input type="text" class="form-control" id="passenger" name="passenger" 
-                                   value="{{ booking_data.full_name if booking_data else '' }}" required>
-                        </div>
                         
                         <div class="row">
                             <div class="col-md-6">
