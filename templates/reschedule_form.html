@@ -1,67 +1,68 @@
 {% extends "base.html" %}
 
-{% block title %}Reschedule Ticket{% endblock %}
+{% block title %}Reschedule Tiket{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body p-5">
-                    <h2 class="text-center mb-4">
-                        <i class="fas fa-calendar-alt me-2"></i>Reschedule Ticket
-                    </h2>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header">
+                <i class="fas fa-calendar-alt me-2"></i>Reschedule Tiket
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-ticket-alt me-2"></i>Informasi Tiket
+                    </h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Penumpang:</strong></p>
+                            <p class="mb-3">{{ booking[8] }}</p>
+                            
+                            <p class="mb-1"><strong>Dari:</strong></p>
+                            <p class="mb-3">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-plane-departure me-1"></i>{{ booking[2] }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Ke:</strong></p>
+                            <p class="mb-3">
+                                <span class="badge bg-success">
+                                    <i class="fas fa-plane-arrival me-1"></i>{{ booking[3] }}
+                                </span>
+                            </p>
+                            
+                            <p class="mb-1"><strong>Tanggal Saat Ini:</strong></p>
+                            <p class="mb-3">{{ booking[4] }}</p>
+                        </div>
+                    </div>
+                </div>
 
-                    <div class="alert alert-info">
-                        <h5 class="alert-heading">Ticket Information</h5>
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>Passenger:</strong></p>
-                                <p class="mb-3">{{ booking[8] }}</p>
-                                
-                                <p class="mb-1"><strong>From:</strong></p>
-                                <p class="mb-3">
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-plane-departure me-1"></i>{{ booking[2] }}
-                                    </span>
-                                </p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>To:</strong></p>
-                                <p class="mb-3">
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-plane-arrival me-1"></i>{{ booking[3] }}
-                                    </span>
-                                </p>
-                                
-                                <p class="mb-1"><strong>Current Date:</strong></p>
-                                <p class="mb-3">{{ booking[4] }}</p>
-                            </div>
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="mb-4">
+                        <label for="date" class="form-label">Tanggal Baru</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar-plus"></i></span>
+                            <input type="date" class="form-control" id="date" name="date" required
+                                min="{{ now.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>Silakan pilih tanggal baru untuk penerbangan Anda.
                         </div>
                     </div>
 
-                    <form method="POST" class="needs-validation" novalidate>
-                        <div class="mb-4">
-                            <label for="date" class="form-label">New Date</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
-                                <input type="date" class="form-control" id="date" name="date" required
-                                    min="{{ now.strftime('%Y-%m-%d') }}">
-                            </div>
-                            <div class="form-text">Please select a new date for your flight.</div>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-calendar-check me-2"></i>Confirm Reschedule
-                            </button>
-                            <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Back to Tickets
-                            </a>
-                        </div>
-                    </form>
-                </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-calendar-check me-2"></i>Konfirmasi Reschedule
+                        </button>
+                        <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Kembali ke Tiket
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

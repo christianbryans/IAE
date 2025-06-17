@@ -3,56 +3,90 @@
 {% block title %}Reschedule Ticket{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">
-                        <i class="fas fa-calendar-alt me-2"></i>Reschedule Ticket
-                    </h2>
-
-                    {% if booking_data %}
-                    <div class="alert alert-info">
-                        <h5 class="alert-heading">Booking Information</h5>
-                        <p class="mb-0">
-                            <strong>Passenger:</strong> {{ booking_data.passenger_name }}<br>
-                            <strong>From:</strong> {{ booking_data.departure_airport }} <i class="fas fa-plane"></i> <strong>To:</strong> {{ booking_data.destination_airport }}<br>
-                            <strong>Current Date:</strong> {{ booking_data.booking_date }}<br>
-                            <strong>Seat:</strong> {{ booking_data.seat_number if booking_data.seat_number else 'Not Selected' }}
-                        </p>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header">
+                <i class="fas fa-calendar-alt me-2"></i>Reschedule Tiket
+            </div>
+            <div class="card-body p-4">
+                {% if booking_data %}
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-ticket-alt me-2"></i>Informasi Tiket
+                    </h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Penumpang:</strong></p>
+                            <p class="mb-3">{{ booking_data.passenger_name }}</p>
+                            
+                            <p class="mb-1"><strong>Dari:</strong></p>
+                            <p class="mb-3">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-plane-departure me-1"></i>{{ booking_data.departure_airport }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Ke:</strong></p>
+                            <p class="mb-3">
+                                <span class="badge bg-success">
+                                    <i class="fas fa-plane-arrival me-1"></i>{{ booking_data.destination_airport }}
+                                </span>
+                            </p>
+                            
+                            <p class="mb-1"><strong>Tanggal:</strong></p>
+                            <p class="mb-3">{{ booking_data.booking_date }}</p>
+                            
+                            <p class="mb-1"><strong>Kursi:</strong></p>
+                            <p class="mb-3">
+                                <span class="badge bg-info">
+                                    <i class="fas fa-chair me-1"></i>{{ booking_data.seat_number if booking_data.seat_number else 'Belum Dipilih' }}
+                                </span>
+                            </p>
+                        </div>
                     </div>
-                    {% endif %}
+                </div>
+                {% endif %}
 
-                    <form method="POST" action="{{ url_for('reschedule', booking_id=booking_data.id if booking_data else '') }}" class="needs-validation" novalidate>
-                        <div class="mb-3">
-                            <label for="new_date" class="form-label">New Travel Date</label>
+                <form method="POST" action="{{ url_for('reschedule', booking_id=booking_data.id if booking_data else '') }}" class="needs-validation" novalidate>
+                    <div class="mb-4">
+                        <label for="new_date" class="form-label">Tanggal Perjalanan Baru</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar-plus"></i></span>
                             <input type="date" class="form-control" id="new_date" name="new_date" 
                                    min="{{ today }}" required>
-                            <small class="text-muted">Please select a new date for your travel.</small>
                         </div>
-
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('tickets') }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Back to Tickets
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-check me-1"></i>Confirm Reschedule
-                            </button>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>Silakan pilih tanggal baru untuk perjalanan Anda.
                         </div>
-                    </form>
+                    </div>
 
-                    {% if reschedule_history %}
-                    <div class="mt-4">
-                        <h4>Reschedule History</h4>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-check me-2"></i>Konfirmasi Reschedule
+                        </button>
+                        <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Kembali ke Tiket
+                        </a>
+                    </div>
+                </form>
+
+                {% if reschedule_history %}
+                <div class="card mt-4 shadow">
+                    <div class="card-header">
+                        <i class="fas fa-history me-2"></i>Riwayat Reschedule
+                    </div>
+                    <div class="card-body p-4">
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table table-hover align-middle">
                                 <thead>
                                     <tr>
-                                        <th>Passenger</th>
-                                        <th>Old Date</th>
-                                        <th>New Date</th>
-                                        <th>Rescheduled On</th>
+                                        <th>Penumpang</th>
+                                        <th>Tanggal Lama</th>
+                                        <th>Tanggal Baru</th>
+                                        <th>Tanggal Reschedule</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -68,8 +102,8 @@
                             </table>
                         </div>
                     </div>
-                    {% endif %}
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>

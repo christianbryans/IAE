@@ -1,103 +1,91 @@
 {% extends "base.html" %}
 
-{% block title %}My Tickets{% endblock %}
+{% block title %}Daftar Tiket{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">
-                        <i class="fas fa-ticket-alt me-2"></i>My Tickets
-                    </h2>
-
-                    {% if tickets %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Booking ID</th>
-                                    <th>Passenger</th>
-                                    <th>From</th>
-                                    <th>To</th>
-                                    <th>Date</th>
-                                    <th>Seat</th>
-                                    <th>Contact</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for ticket in tickets %}
-                                <tr>
-                                    <td>{{ ticket[0] }}</td>
-                                    <td>{{ ticket[2] }}</td>
-                                    <td>
-                                        <span class="badge bg-primary">
-                                            <i class="fas fa-plane-departure me-1"></i>{{ ticket[3] }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-plane-arrival me-1"></i>{{ ticket[4] }}
-                                        </span>
-                                    </td>
-                                    <td>{{ ticket[5] }}</td>
-                                    <td>
-                                        {% if ticket[6] %}
-                                        <span class="badge bg-info">
-                                            <i class="fas fa-chair me-1"></i>{{ ticket[6] }}
-                                        </span>
-                                        {% else %}
-                                        <span class="badge bg-warning">
-                                            <i class="fas fa-exclamation-circle me-1"></i>Not Selected
-                                        </span>
+<div class="mb-4 text-center">
+    <h2 class="fw-bold mb-2">Daftar Tiket Anda</h2>
+    <p class="text-muted">Kelola semua tiket penerbangan Anda di sini.</p>
+</div>
+<div class="row justify-content-center">
+    <div class="col-lg-11">
+        <div class="card shadow">
+            <div class="card-header">
+                <i class="fas fa-ticket-alt me-2"></i>Daftar Tiket
+            </div>
+            <div class="card-body">
+                {% if tickets %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Penumpang</th>
+                                <th>Rute</th>
+                                <th>Tanggal</th>
+                                <th>Kursi</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in tickets %}
+                            <tr>
+                                <td class="fw-bold">#{{ ticket.id }}</td>
+                                <td>{{ ticket.passenger_name }}</td>
+                                <td>
+                                    <span class="badge bg-primary mb-1">
+                                        <i class="fas fa-plane-departure me-1"></i>{{ ticket.departure_airport.split(' - ')[0] }}
+                                    </span>
+                                    <i class="fas fa-arrow-right mx-1 text-secondary"></i>
+                                    <span class="badge bg-success mb-1">
+                                        <i class="fas fa-plane-arrival me-1"></i>{{ ticket.destination_airport.split(' - ')[0] }}
+                                    </span>
+                                </td>
+                                <td>{{ ticket.booking_date.strftime('%d %b %Y') }}</td>
+                                <td>
+                                    {% if ticket.seat_number %}
+                                    <span class="badge bg-info"><i class="fas fa-chair me-1"></i>{{ ticket.seat_number }}</span>
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {% if ticket.status == 'active' %}bg-success{% elif ticket.status == 'cancelled' %}bg-danger{% elif ticket.status == 'refunded' %}bg-warning{% else %}bg-info{% endif %}">
+                                        {{ ticket.status|capitalize }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        {% if ticket.status == 'active' or ticket.status == 'paid' %}
+                                        <a href="{{ url_for('seat_selection', booking_id=ticket.id) }}" class="btn btn-sm btn-info" title="Pilih/Ubah Kursi">
+                                            <i class="fas fa-chair"></i>
+                                        </a>
+                                        <a href="{{ url_for('reschedule', booking_id=ticket.id) }}" class="btn btn-sm btn-warning" title="Reschedule">
+                                            <i class="fas fa-calendar-alt"></i>
+                                        </a>
+                                        <a href="{{ url_for('cancel_ticket', booking_id=ticket.id) }}" class="btn btn-sm btn-danger" title="Batalkan">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                        <a href="{{ url_for('refund', booking_id=ticket.id) }}" class="btn btn-sm btn-secondary" title="Refund">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </a>
                                         {% endif %}
-                                    </td>
-                                    <td>
-                                        <small>
-                                            <i class="fas fa-envelope me-1"></i>{{ ticket[7] }}<br>
-                                            <i class="fas fa-phone me-1"></i>{{ ticket[8] }}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            {% if not ticket[6] %}
-                                            <a href="{{ url_for('seat_selection', booking_id=ticket[0]) }}" 
-                                               class="btn btn-sm btn-primary">
-                                                <i class="fas fa-chair me-1"></i>Select Seat
-                                            </a>
-                                            {% else %}
-                                            <a href="{{ url_for('reschedule', booking_id=ticket[0]) }}" 
-                                               class="btn btn-sm btn-warning">
-                                                <i class="fas fa-calendar-alt me-1"></i>Reschedule
-                                            </a>
-                                            <a href="{{ url_for('cancel_ticket', booking_id=ticket[0]) }}" 
-                                               class="btn btn-sm btn-danger">
-                                                <i class="fas fa-times-circle me-1"></i>Cancel
-                                            </a>
-                                            <a href="{{ url_for('refund', booking_id=ticket[0]) }}" 
-                                               class="btn btn-sm btn-success">
-                                                <i class="fas fa-money-bill-wave me-1"></i>Refund
-                                            </a>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
-                        <h4>No Tickets Found</h4>
-                        <p class="text-muted">You haven't booked any tickets yet.</p>
-                        <a href="{{ url_for('booking') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-1"></i>Book a Ticket
-                        </a>
-                    </div>
-                    {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Anda belum memiliki tiket. Silakan pesan tiket baru.
+                </div>
+                {% endif %}
+                <div class="mt-4 text-end">
+                    <a href="{{ url_for('booking') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Pesan Tiket Baru
+                    </a>
                 </div>
             </div>
         </div>

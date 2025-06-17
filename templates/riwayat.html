@@ -1,77 +1,78 @@
 {% extends "base.html" %}
 
-{% block title %}Reschedule History{% endblock %}
+{% block title %}Riwayat Reschedule{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">
-                        <i class="fas fa-history me-2"></i>Reschedule History
-                    </h2>
-
-                    {% if history %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Booking ID</th>
-                                    <th>Passenger</th>
-                                    <th>From</th>
-                                    <th>To</th>
-                                    <th>Old Date</th>
-                                    <th>New Date</th>
-                                    <th>Rescheduled On</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in history %}
-                                <tr>
-                                    <td>#{{ item[1] }}</td>
-                                    <td>{{ item[7] }}</td>
-                                    <td>
-                                        <span class="badge bg-primary">
-                                            <i class="fas fa-plane-departure me-1"></i>{{ item[5] }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-plane-arrival me-1"></i>{{ item[6] }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="text-muted">
-                                            <i class="fas fa-calendar me-1"></i>{{ item[2] }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="text-primary">
-                                            <i class="fas fa-calendar-check me-1"></i>{{ item[3] }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock me-1"></i>{{ item[4] }}
-                                        </small>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
-                        <h4>No Reschedule History</h4>
-                        <p class="text-muted">You haven't rescheduled any tickets yet.</p>
-                        <a href="{{ url_for('tickets') }}" class="btn btn-primary">
-                            <i class="fas fa-ticket-alt me-1"></i>View My Tickets
-                        </a>
-                    </div>
-                    {% endif %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow">
+            <div class="card-header">
+                <i class="fas fa-history me-2"></i>Riwayat Reschedule
+            </div>
+            <div class="card-body p-4">
+                {% if history %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Penumpang</th>
+                                <th>Dari</th>
+                                <th>Ke</th>
+                                <th>Tanggal Lama</th>
+                                <th>Tanggal Baru</th>
+                                <th>Tanggal Reschedule</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in history %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-hashtag me-1"></i>{{ item[1] }}
+                                    </span>
+                                </td>
+                                <td>{{ item[7] }}</td>
+                                <td>
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-plane-departure me-1"></i>{{ item[5] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-plane-arrival me-1"></i>{{ item[6] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-muted">
+                                        <i class="fas fa-calendar me-1"></i>{{ item[2] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-primary">
+                                        <i class="fas fa-calendar-check me-1"></i>{{ item[3] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>{{ item[4] }}
+                                    </small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <h4>Belum Ada Riwayat Reschedule</h4>
+                    <p class="text-muted">Anda belum pernah melakukan reschedule tiket.</p>
+                    <a href="{{ url_for('tickets') }}" class="btn btn-primary">
+                        <i class="fas fa-ticket-alt me-2"></i>Lihat Tiket Saya
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

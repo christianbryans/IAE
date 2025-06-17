@@ -1,214 +1,119 @@
 {% extends "base.html" %}
 
-{% block title %}Book a Trip{% endblock %}
+{% block title %}Pesan Tiket{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <!-- Success Alert -->
-            <div id="successAlert" class="alert alert-success alert-dismissible fade" role="alert" style="display: none;">
-                <i class="fas fa-check-circle me-2"></i>
-                <strong>Booking Successful!</strong> Your flight has been booked successfully.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+        <div class="card shadow">
+            <div class="card-header">
+                <i class="fas fa-plane-departure me-2"></i>Form Pemesanan Tiket
             </div>
-            
-            <div class="card">
-                <div class="card-body p-5">
-                    <h2 class="text-center mb-4">
-                        <i class="fas fa-plane-departure me-2"></i>Book Your Trip
-                    </h2>
-                    <form method="POST" class="needs-validation" novalidate id="bookingForm">
-                        <div class="mb-4">
-                            <label for="passenger_name" class="form-label">Passenger Name</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                <input type="text" class="form-control" id="passenger_name" name="passenger_name" required
-                                    placeholder="Enter passenger's full name">
+            <div class="card-body p-4">
+                <form method="POST" class="needs-validation" novalidate id="bookingForm">
+                    <div class="mb-4">
+                        <label for="passenger_name" class="form-label">Nama Penumpang</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="passenger_name" name="passenger_name" required placeholder="Masukkan nama penumpang">
+                        </div>
+                        <div class="invalid-feedback">Nama penumpang wajib diisi.</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="departure" class="form-label">Bandara Keberangkatan</label>
+                                <select class="form-select" id="departure" name="departure" required>
+                                    <option value="">Pilih bandara keberangkatan</option>
+                                    {% for airport in airports %}
+                                    <option value="{{ airport.code }} - {{ airport.name }}">
+                                        {{ airport.code }} - {{ airport.name }} ({{ airport.city }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Pilih bandara keberangkatan.</div>
                             </div>
                         </div>
-
-                        <div class="mb-4">
-                            <label for="departure_airport" class="form-label">Departure Airport</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-plane-departure"></i></span>
-                                <input type="text" class="form-control" id="departure_airport" name="departure_airport" 
-                                    required placeholder="Search departure airport...">
-                                <input type="hidden" id="departure_airport_code" name="departure_airport_code">
-                            </div>
-                            <div id="departure_suggestions" class="list-group position-absolute" style="z-index: 1000; width: 100%; display: none;"></div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="destination_airport" class="form-label">Destination Airport</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-plane-arrival"></i></span>
-                                <input type="text" class="form-control" id="destination_airport" name="destination_airport" 
-                                    required placeholder="Search destination airport...">
-                                <input type="hidden" id="destination_airport_code" name="destination_airport_code">
-                            </div>
-                            <div id="destination_suggestions" class="list-group position-absolute" style="z-index: 1000; width: 100%; display: none;"></div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="date" class="form-label">Travel Date</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-calendar"></i></span>
-                                <input type="date" class="form-control" id="date" name="date" required
-                                    min="{{ now.strftime('%Y-%m-%d') }}">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="destination" class="form-label">Bandara Tujuan</label>
+                                <select class="form-select" id="destination" name="destination" required>
+                                    <option value="">Pilih bandara tujuan</option>
+                                    {% for airport in airports %}
+                                    <option value="{{ airport.code }} - {{ airport.name }}">
+                                        {{ airport.code }} - {{ airport.name }} ({{ airport.city }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Pilih bandara tujuan.</div>
                             </div>
                         </div>
-
-                        <div class="mb-4">
-                            <label class="form-label">Select Airline</label>
-                            <div class="row">
-                                {% for airline in airlines %}
-                                <div class="col-md-6 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="airline_id" 
-                                                       id="airline{{ airline.id }}" value="{{ airline.id }}" required>
-                                                <label class="form-check-label" for="airline{{ airline.id }}">
-                                                    <div class="d-flex align-items-center">
-                                                        {% if airline.logo_url %}
-                                                        <img src="{{ airline.logo_url }}" alt="{{ airline.name }}" 
-                                                             class="me-2" style="height: 30px;">
-                                                        {% endif %}
-                                                        <div>
-                                                            <strong>{{ airline.name }}</strong>
-                                                            <div class="text-muted small">{{ airline.code }}</div>
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                            </div>
-                                            <div class="mt-2">
-                                                <span class="h5 text-primary">Rp {{ "{:,}".format(airline.base_price) }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="date" class="form-label">Tanggal Penerbangan</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                            <input type="date" class="form-control" id="date" name="date" required min="{{ now.strftime('%Y-%m-%d') }}">
                         </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-check-circle me-2"></i>Book Now
-                            </button>
-                            <a href="/" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Back to Home
-                            </a>
-                        </div>
-                    </form>
-                </div>
+                        <div class="invalid-feedback">Tanggal penerbangan wajib diisi.</div>
+                    </div>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-check-circle me-2"></i>Pesan Tiket
+                        </button>
+                        <a href="/" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Kembali ke Beranda
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Form validation
-    (function () {
-        'use strict'
-        var forms = document.querySelectorAll('.needs-validation')
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault()
-                    event.stopPropagation()
-                }
-                form.classList.add('was-validated')
-            }, false)
-        })
-    })()
-
-    // Airport search functionality
-    function setupAirportSearch(inputId, suggestionsId, codeInputId) {
-        const input = document.getElementById(inputId);
-        const suggestions = document.getElementById(suggestionsId);
-        const codeInput = document.getElementById(codeInputId);
-        let timeoutId;
-
-        input.addEventListener('input', function() {
-            clearTimeout(timeoutId);
-            const query = this.value.trim();
-            
-            if (query.length < 2) {
-                suggestions.style.display = 'none';
-                return;
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
             }
-
-            timeoutId = setTimeout(() => {
-                fetch(`/api/airports?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        suggestions.innerHTML = '';
-                        if (data.length > 0) {
-                            data.forEach(airport => {
-                                const item = document.createElement('a');
-                                item.href = '#';
-                                item.className = 'list-group-item list-group-item-action';
-                                item.innerHTML = `
-                                    <div class="d-flex justify-content-between">
-                                        <strong>${airport.name}</strong>
-                                        <small class="text-muted">${airport.code}</small>
-                                    </div>
-                                    <small class="text-muted">${airport.city}</small>
-                                `;
-                                item.addEventListener('click', function(e) {
-                                    e.preventDefault();
-                                    input.value = `${airport.name} (${airport.code})`;
-                                    codeInput.value = airport.code;
-                                    suggestions.style.display = 'none';
-                                });
-                                suggestions.appendChild(item);
-                            });
-                            suggestions.style.display = 'block';
-                        } else {
-                            suggestions.style.display = 'none';
-                        }
-                    });
-            }, 300);
-        });
-
-        // Hide suggestions when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!input.contains(e.target) && !suggestions.contains(e.target)) {
-                suggestions.style.display = 'none';
-            }
-        });
-    }
-
-    // Initialize airport search for both fields
-    setupAirportSearch('departure_airport', 'departure_suggestions', 'departure_airport_code');
-    setupAirportSearch('destination_airport', 'destination_suggestions', 'destination_airport_code');
-
-    // Form submission handler
-    document.getElementById('bookingForm').addEventListener('submit', function(e) {
-        const departureCode = document.getElementById('departure_airport_code').value;
-        const destinationCode = document.getElementById('destination_airport_code').value;
-        
-        if (!departureCode || !destinationCode) {
-            e.preventDefault();
-            alert('Please select both departure and destination airports from the suggestions.');
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+// Prevent selecting same airport for departure and destination
+document.getElementById('departure').addEventListener('change', function() {
+    const destination = document.getElementById('destination');
+    const options = destination.options;
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].value === this.value) {
+            options[i].disabled = true;
         } else {
-            // Show success message after form submission
-            const successAlert = document.getElementById('successAlert');
-            successAlert.style.display = 'block';
-            successAlert.classList.add('show');
-            
-            // Scroll to top to show the alert
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            
-            // Hide the alert after 5 seconds
-            setTimeout(() => {
-                successAlert.classList.remove('show');
-                setTimeout(() => {
-                    successAlert.style.display = 'none';
-                }, 150);
-            }, 5000);
+            options[i].disabled = false;
         }
-    });
+    }
+    if (destination.value === this.value) {
+        destination.value = '';
+    }
+});
+document.getElementById('destination').addEventListener('change', function() {
+    const departure = document.getElementById('departure');
+    const options = departure.options;
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].value === this.value) {
+            options[i].disabled = true;
+        } else {
+            options[i].disabled = false;
+        }
+    }
+    if (departure.value === this.value) {
+        departure.value = '';
+    }
+});
 </script>
 {% endblock %}

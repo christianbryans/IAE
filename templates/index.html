@@ -3,89 +3,96 @@
 {% block title %}Menu Layanan Tiket{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="text-center mb-5">
-        <h1 class="display-4 fw-bold text-primary">Selamat Datang di Layanan Tiket Kami</h1>
-        <p class="lead text-muted">Pilih salah satu layanan di bawah untuk melanjutkan.</p>
+<div class="hero-section mb-5 text-center">
+    <h1 class="display-4 fw-bold mb-3">Selamat Datang di Layanan Tiket Pesawat</h1>
+    <p class="lead">Pesan, kelola, dan nikmati perjalanan Anda dengan mudah dan nyaman.</p>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 justify-content-center">
+    <!-- Booking Tiket Card -->
+    <div class="col">
+        <a href="{{ url_for('booking') }}" class="card-link text-decoration-none">
+            <div class="card h-100 shadow-sm border-0 hover-grow">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-ticket-alt fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title text-primary fw-bold">Booking Tiket</h5>
+                    <p class="card-text text-muted">Pesan tiket penerbangan Anda dengan cepat.</p>
+                    <span class="badge bg-primary position-absolute top-0 end-0 m-2">Baru</span>
+                </div>
+            </div>
+        </a>
     </div>
-
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        <!-- Booking Tiket Card (New - Order: 1) -->
-        <div class="col">
-            <a href="{{ url_for('booking') }}" class="card-link text-decoration-none">
-                <div class="card h-100 shadow-sm border-primary hover-grow">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-ticket-alt fa-4x text-primary mb-3"></i>
-                        <h5 class="card-title text-primary fw-bold">Booking Tiket</h5>
-                        <p class="card-text text-muted">Pesan tiket penerbangan Anda dengan cepat.</p>
-                        <span class="badge bg-primary position-absolute top-0 start-100 translate-middle rounded-pill">Baru</span>
-                    </div>
+    <!-- Reschedule Tiket Card -->
+    <div class="col">
+        <a href="{{ url_for('tickets') }}" class="card-link text-decoration-none">
+            <div class="card h-100 shadow-sm border-0 hover-grow">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-calendar-alt fa-3x text-success mb-3"></i>
+                    <h5 class="card-title text-success fw-bold">Reschedule Tiket</h5>
+                    <p class="card-text text-muted">Ubah jadwal penerbangan Anda dengan mudah.</p>
+                    <span class="badge bg-success position-absolute top-0 end-0 m-2">Baru</span>
                 </div>
-            </a>
-        </div>
-
-        <!-- Reschedule Tiket Card (New - Order: 4) -->
-        <div class="col">
-            <a href="{{ url_for('reschedule', booking_id=1) }}" class="card-link text-decoration-none">
-                <div class="card h-100 shadow-sm border-secondary hover-grow">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-calendar-alt fa-4x text-secondary mb-3"></i>
-                        <h5 class="card-title text-secondary fw-bold">Reschedule Tiket</h5>
-                        <p class="card-text text-muted">Ubah jadwal penerbangan Anda dengan mudah.</p>
-                        <span class="badge bg-secondary position-absolute top-0 start-100 translate-middle rounded-pill">Baru</span>
-                    </div>
+            </div>
+        </a>
+    </div>
+    <!-- Pembatalan Tiket Card -->
+    <div class="col">
+        <a href="{{ url_for('tickets') }}" class="card-link text-decoration-none">
+            <div class="card h-100 shadow-sm border-0 hover-grow">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-times-circle fa-3x text-danger mb-3"></i>
+                    <h5 class="card-title text-danger fw-bold">Pembatalan Tiket</h5>
+                    <p class="card-text text-muted">Batalkan tiket penerbangan Anda dengan mudah.</p>
+                    <span class="badge bg-danger position-absolute top-0 end-0 m-2">Baru</span>
                 </div>
-            </a>
-        </div>
-
-        <!-- Pembatalan Tiket Card (Order: 5) -->
-        <div class="col">
-            <a href="{{ url_for('cancel_ticket') }}" class="card-link text-decoration-none">
-                <div class="card h-100 shadow-sm border-danger hover-grow">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-times-circle fa-4x text-danger mb-3"></i>
-                        <h5 class="card-title text-danger fw-bold">Pembatalan Tiket</h5>
-                        <p class="card-text text-muted">Batalkan tiket penerbangan Anda dengan mudah.</p>
-                        <span class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill">Baru</span>
-                    </div>
+            </div>
+        </a>
+    </div>
+    <!-- Pengembalian Dana Card -->
+    <div class="col">
+        <a href="{{ url_for('tickets') }}" class="card-link text-decoration-none">
+            <div class="card h-100 shadow-sm border-0 hover-grow">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-money-bill-wave fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title text-warning fw-bold">Pengembalian Dana</h5>
+                    <p class="card-text text-muted">Ajukan pengembalian dana untuk tiket Anda.</p>
+                    <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2">Baru</span>
                 </div>
-            </a>
-        </div>
-
-        <!-- Pengembalian Dana Card (Order: 6) -->
-        <div class="col">
-            <a href="{{ url_for('refund') }}" class="card-link text-decoration-none">
-                <div class="card h-100 shadow-sm border-success hover-grow">
-                    <div class="card-body text-center p-4">
-                        <i class="fas fa-money-bill-wave fa-4x text-success mb-3"></i>
-                        <h5 class="card-title text-success fw-bold">Pengembalian Dana</h5>
-                        <p class="card-text text-muted">Ajukan pengembalian dana untuk tiket Anda.</p>
-                        <span class="badge bg-success position-absolute top-0 start-100 translate-middle rounded-pill">Baru</span>
-                    </div>
-                </div>
-            </a>
-        </div>
+            </div>
+        </a>
     </div>
 </div>
 
 <style>
+.hero-section {
+    margin-top: 2rem;
+    margin-bottom: 3rem;
+    padding: 3rem 1rem 2.5rem 1rem;
+    border-radius: 1.2rem;
+    box-shadow: 0 4px 16px rgba(25, 118, 210, 0.08);
+    background: linear-gradient(90deg, #1976d2 70%, #ffb300 100%);
+    color: #fff;
+}
+.hero-section h1, .hero-section p {
+    color: #fff;
+}
 .card-link {
     display: block;
     height: 100%;
 }
-
 .card.hover-grow {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 1rem;
 }
-
 .card.hover-grow:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    transform: translateY(-7px) scale(1.03);
+    box-shadow: 0 1rem 2rem rgba(25, 118, 210, 0.10) !important;
 }
-
-/* Ensure icons scale proportionally */
-.card-body i {
-    line-height: 1;
+.card .badge {
+    font-size: 0.85em;
+    font-weight: 600;
+    border-radius: 0.7em;
+    padding: 0.5em 1em;
 }
 </style>
 {% endblock %}

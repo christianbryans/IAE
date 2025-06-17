@@ -1,279 +1,315 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">Select Your Seat</h3>
-                </div>
-                <div class="card-body">
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ category }}">{{ message }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
-                    
-                    <div class="alert alert-info mb-4">
-                        <h5 class="alert-heading">Flight Information</h5>
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>Airline:</strong></p>
-                                <p class="mb-3">
-                                    <span class="badge bg-primary">
-                                        {% if booking.airline_logo %}
-                                        <img src="{{ booking.airline_logo }}" alt="{{ booking.airline_name }}" 
-                                             style="height: 20px; margin-right: 5px;">
-                                        {% endif %}
-                                        {{ booking.airline_name }} ({{ booking.airline_code }})
-                                    </span>
-                                </p>
-                                
-                                <p class="mb-1"><strong>From:</strong></p>
-                                <p class="mb-3">
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-plane-departure me-1"></i>{{ booking.departure_airport }}
-                                    </span>
-                                </p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>To:</strong></p>
-                                <p class="mb-3">
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-plane-arrival me-1"></i>{{ booking.destination_airport }}
-                                    </span>
-                                </p>
-                                
-                                <p class="mb-1"><strong>Date:</strong></p>
-                                <p class="mb-3">{{ booking.booking_date }}</p>
-                                
-                                <p class="mb-1"><strong>Price:</strong></p>
-                                <p class="mb-3">
-                                    <span class="h5 text-primary">Rp {{ "{:,}".format(booking.total_price) }}</span>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+{% block title %}Pilih Kursi{% endblock %}
 
-                    {% if user_bookings %}
-                    <div class="alert alert-warning mb-4">
-                        <h5 class="alert-heading">Your Booked Seats</h5>
-                        <hr>
-                        <div class="row">
-                            {% for booking in user_bookings %}
-                            <div class="col-md-6 mb-2">
-                                <div class="d-flex align-items-center">
-                                    <div class="seat occupied me-2">{{ booking.seat_number }}</div>
-                                    <div>
-                                        <strong>{{ booking.passenger_name }}</strong>
-                                        <br>
-                                        <small class="text-muted">Seat {{ booking.seat_number }}</small>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow">
+            <div class="card-header">
+                <i class="fas fa-chair me-2"></i>Pilih Kursi
+            </div>
+            <div class="card-body p-4">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-plane me-2"></i>Informasi Penerbangan
+                    </h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Penumpang:</strong></p>
+                            <p class="mb-3">{{ booking.passenger_name }}</p>
+                            <p class="mb-1"><strong>Dari:</strong></p>
+                            <p class="mb-3">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-plane-departure me-1"></i>{{ booking.departure_airport }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Ke:</strong></p>
+                            <p class="mb-3">
+                                <span class="badge bg-success">
+                                    <i class="fas fa-plane-arrival me-1"></i>{{ booking.destination_airport }}
+                                </span>
+                            </p>
+                            <p class="mb-1"><strong>Tanggal:</strong></p>
+                            <p class="mb-3">{{ booking.booking_date.strftime('%d %B %Y') }}</p>
                         </div>
                     </div>
-                    {% endif %}
-                    
-                    <form method="post" class="needs-validation" novalidate>
-                        <input type="hidden" name="booking_id" value="{{ booking.id }}">
-                        
-                        <div class="mb-4">
-                            <label class="form-label">Available Seats</label>
-                            <div class="seat-map">
-                                <div class="row justify-content-center mb-2">
-                                    <div class="col-auto">
-                                        <div class="seat-legend">
-                                            <span class="seat available"></span> Available
-                                            <span class="seat selected"></span> Selected
-                                            <span class="seat occupied"></span> Booked
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row justify-content-center">
-                                    <div class="col-auto">
-                                        <div class="seat-grid">
-                                            {% for row in range(1, 11) %}
-                                            <div class="seat-row">
-                                                {% for col in ['A', 'B', 'C', 'D'] %}
-                                                {% set seat_number = col ~ row %}
-                                                {% set is_occupied = seat_number in occupied_seats %}
-                                                {% set is_selected = seat_number == selected_seat %}
-                                                <div class="seat {{ 'occupied' if is_occupied else 'selected' if is_selected else 'available' }}"
-                                                     id="seat-{{ seat_number }}"
-                                                     data-seat="{{ seat_number }}"
-                                                     onclick="selectSeat('{{ seat_number }}')">
-                                                    {{ seat_number }}
-                                                    {% if is_occupied %}
-                                                    <span class="seat-status">×</span>
-                                                    {% endif %}
-                                                </div>
-                                                {% endfor %}
-                                            </div>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-tag me-2"></i>Harga Dasar
+                                </h5>
+                                <p class="card-text">
+                                    <span class="h5 text-primary">Rp {{ "{:,.0f}".format(booking.base_price) }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-calculator me-2"></i>Total Harga
+                                </h5>
+                                <p class="card-text">
+                                    <span class="h5 text-primary">Rp {{ "{:,.0f}".format(booking.total_price) }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% if user_bookings %}
+                <div class="alert alert-warning mb-4">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-info-circle me-2"></i>Kursi yang Sudah Dipesan
+                    </h5>
+                    <hr>
+                    <div class="row">
+                        {% for booking in user_bookings %}
+                        <div class="col-md-6 mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="seat occupied me-2">{{ booking.seat_number }}</div>
+                                <div>
+                                    <strong>{{ booking.passenger_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">Kursi {{ booking.seat_number }}</small>
                                 </div>
                             </div>
-                            <input type="hidden" name="seat_number" id="selected_seat" required>
                         </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
-                                <i class="fas fa-check-circle me-2"></i>Confirm Seat Selection
-                            </button>
-                            <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Back to Tickets
-                            </a>
-                        </div>
-                    </form>
+                        {% endfor %}
+                    </div>
                 </div>
+                {% endif %}
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="fas fa-chair me-2"></i>Pilih Kursi
+                        </label>
+                        <div class="seat-map">
+                            <div class="seat-legend mb-4">
+                                <div class="seat-legend-item">
+                                    <div class="seat-legend-icon available"></div>
+                                    <span>Tersedia</span>
+                                </div>
+                                <div class="seat-legend-item">
+                                    <div class="seat-legend-icon selected"></div>
+                                    <span>Dipilih</span>
+                                </div>
+                                <div class="seat-legend-item">
+                                    <div class="seat-legend-icon occupied"></div>
+                                    <span>Terisi</span>
+                                </div>
+                            </div>
+                            <div class="airplane-body">
+                                <div class="airplane-front">
+                                    <i class="fas fa-plane"></i>
+                                </div>
+                                <div class="seat-container">
+                                    {% set seat_rows = ['A', 'B', 'C', 'D', 'E', 'F'] %}
+                                    {% set seat_cols = range(1, 7) %}
+                                    {% for row in seat_rows %}
+                                    <div class="seat-row">
+                                        <div class="row-label">{{ row }}</div>
+                                        {% for col in seat_cols %}
+                                            {% set seat_number = row ~ col %}
+                                            {% set is_my_seat = my_seat == seat_number %}
+                                            {% set is_occupied = seat_number in occupied_seats %}
+                                            {% if col == 4 %}
+                                                <div class="aisle"></div>
+                                            {% endif %}
+                                            <button type="button" class="seat-btn {% if is_my_seat %}selected{% elif is_occupied %}occupied{% endif %}" 
+                                                    data-seat="{{ seat_number }}"
+                                                    {% if is_occupied and not is_my_seat %}disabled{% endif %}
+                                                    {% if is_my_seat %}disabled{% endif %}>
+                                                {{ seat_number }}
+                                            </button>
+                                        {% endfor %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="seat_number" id="selected_seat" required>
+                        <div class="invalid-feedback">Mohon pilih kursi</div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-check me-2"></i>Konfirmasi Pilihan Kursi
+                        </button>
+                        <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Kembali ke Tiket
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    var occupiedSeats = JSON.parse('{{ occupied_seats|tojson }}');
-    var selectedSeat = "{{ selected_seat | default('') }}";
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
 
-    console.log("Occupied Seats (JS): ", occupiedSeats);
-    console.log("Selected Seat (JS): ", selectedSeat);
-
-    function selectSeat(seatNumber) {
-        // Check if seat is occupied
-        if (occupiedSeats.includes(seatNumber)) {
-            alert('This seat is already taken');
-            return;
-        }
-        
-        // Remove selected class from all seats
-        document.querySelectorAll('.seat').forEach(seat => {
-            seat.classList.remove('selected');
+// Seat selection
+document.querySelectorAll('.seat-btn').forEach(button => {
+    if (!button.disabled) {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('.seat-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            this.classList.add('selected');
+            document.getElementById('selected_seat').value = this.dataset.seat;
         });
-        
-        // Add selected class to clicked seat
-        document.getElementById('seat-' + seatNumber).classList.add('selected');
-        
-        // Update hidden input
-        document.getElementById('selected_seat').value = seatNumber;
-        
-        // Enable the submit button
-        document.getElementById('submitBtn').disabled = false;
     }
-
-    // Form validation
-    (function() {
-        'use strict';
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function(form) {
-            form.addEventListener('submit', function(event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    })();
+});
 </script>
 
 <style>
 .seat-map {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
+    background-color: #f8f9fa;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
 }
 
 .seat-legend {
-    margin-bottom: 20px;
-    text-align: center;
-    padding: 10px;
-    background: white;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    margin-bottom: 2rem;
 }
 
-.seat-legend .seat {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    margin: 0 5px;
-    border-radius: 5px;
+.seat-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.seat-grid {
+.seat-legend-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.seat-legend-icon.available {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.seat-legend-icon.selected {
+    background-color: #198754;
+    color: white;
+}
+
+.seat-legend-icon.occupied {
+    background-color: #dc3545;
+    color: white;
+}
+
+.airplane-body {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    align-items: center;
+    gap: 1rem;
+}
+
+.airplane-front {
+    font-size: 2rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.seat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .seat-row {
     display: flex;
-    gap: 5px;
-}
-
-.seat {
-    width: 40px;
-    height: 40px;
-    margin: 5px;
-    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    border: 2px solid #ddd;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
+    gap: 0.5rem;
 }
 
-.seat:hover:not(.occupied) {
-    background-color: #e9ecef;
-    border-color: #6c757d;
+.row-label {
+    width: 2rem;
+    text-align: center;
+    font-weight: bold;
+    color: #6c757d;
 }
 
-.seat.selected {
-    background-color: #28a745;
-    border-color: #28a745;
+.seat-btn {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    border: 2px solid #dee2e6;
+    background-color: #0d6efd;
     color: white;
+    transition: all 0.2s ease;
 }
 
-.seat.occupied {
+.seat-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.seat-btn.selected {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.seat-btn.occupied {
     background-color: #dc3545;
     border-color: #dc3545;
-    color: white;
     cursor: not-allowed;
-    pointer-events: none;
 }
 
-.seat.occupied::after {
-    content: "×";
-    position: absolute;
-    font-size: 24px;
-    line-height: 1;
+.aisle {
+    width: 2rem;
 }
 
-.seat.occupied:hover {
-    background-color: #dc3545;
-    border-color: #dc3545;
-}
-
-.seat-status {
-    position: absolute;
-    font-size: 24px;
-    color: white;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+@media (max-width: 768px) {
+    .seat-btn {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .seat-legend {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
 }
 </style>
 {% endblock %} 

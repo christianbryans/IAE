@@ -1,78 +1,90 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card shadow">
-                <div class="card-header bg-danger text-white">
-                    <h3 class="mb-0">Pembatalan Tiket</h3>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header">
+                <i class="fas fa-times-circle me-2"></i>Pembatalan Tiket
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Perhatian:</strong> Pembatalan tiket dapat dikenakan biaya sesuai dengan kebijakan maskapai.
                 </div>
-                <div class="card-body">
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Perhatian:</strong> Pembatalan tiket dapat dikenakan biaya sesuai dengan kebijakan maskapai.
-                    </div>
-                    
-                    {% if booking_data %}
-                    <div class="alert alert-info mb-4">
-                        <h5 class="alert-heading">Informasi Tiket</h5>
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>Penumpang:</strong></p>
-                                <p class="mb-3">{{ booking_data.passenger_name }}</p>
-                                
-                                <p class="mb-1"><strong>Dari:</strong></p>
-                                <p class="mb-3">
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-plane-departure me-1"></i>{{ booking_data.departure_airport }}
-                                    </span>
-                                </p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>Ke:</strong></p>
-                                <p class="mb-3">
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-plane-arrival me-1"></i>{{ booking_data.destination_airport }}
-                                    </span>
-                                </p>
-                                
-                                <p class="mb-1"><strong>Tanggal:</strong></p>
-                                <p class="mb-3">{{ booking_data.booking_date }}</p>
-                            </div>
+                
+                {% if booking_data %}
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-ticket-alt me-2"></i>Informasi Tiket
+                    </h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Penumpang:</strong></p>
+                            <p class="mb-3">{{ booking_data.passenger_name }}</p>
+                            
+                            <p class="mb-1"><strong>Dari:</strong></p>
+                            <p class="mb-3">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-plane-departure me-1"></i>{{ booking_data.departure_airport }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Ke:</strong></p>
+                            <p class="mb-3">
+                                <span class="badge bg-success">
+                                    <i class="fas fa-plane-arrival me-1"></i>{{ booking_data.destination_airport }}
+                                </span>
+                            </p>
+                            
+                            <p class="mb-1"><strong>Tanggal:</strong></p>
+                            <p class="mb-3">{{ booking_data.booking_date }}</p>
                         </div>
                     </div>
-                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <form method="post" class="needs-validation" novalidate id="cancelForm">
+                    <input type="hidden" name="booking_id" value="{{ booking_data.id if booking_data else '' }}">
                     
-                    <form method="post" class="needs-validation" novalidate id="cancelForm">
-                        <input type="hidden" name="booking_id" value="{{ booking_data.id if booking_data else '' }}">
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="origin" class="form-label">Dari</label>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <label for="origin" class="form-label">Dari</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-plane-departure"></i></span>
                                     <input type="text" class="form-control" id="origin" name="origin" 
                                            value="{{ booking_data.departure_airport if booking_data else '' }}" required>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="destination" class="form-label">Ke</label>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <label for="destination" class="form-label">Ke</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-plane-arrival"></i></span>
                                     <input type="text" class="form-control" id="destination" name="destination" 
                                            value="{{ booking_data.destination_airport if booking_data else '' }}" required>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="canceled_on" class="form-label">Tanggal Batal</label>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="canceled_on" class="form-label">Tanggal Batal</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar-times"></i></span>
                             <input type="date" class="form-control" id="canceled_on" name="canceled_on" 
                                    value="{{ now.strftime('%Y-%m-%d') }}" required>
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="reason" class="form-label">Alasan Pembatalan</label>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="reason" class="form-label">Alasan Pembatalan</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-question-circle"></i></span>
                             <select class="form-select" id="reason" name="reason" required>
                                 <option value="">Pilih alasan pembatalan</option>
                                 <option value="jadwal berubah">Jadwal berubah</option>
@@ -82,60 +94,63 @@
                                 <option value="lainnya">Lainnya</option>
                             </select>
                         </div>
-                        
-                        <div id="otherReasonDiv" class="mb-3" style="display: none;">
-                            <label for="other_reason" class="form-label">Alasan Lainnya</label>
+                    </div>
+                    
+                    <div id="otherReasonDiv" class="mb-4" style="display: none;">
+                        <label for="other_reason" class="form-label">Alasan Lainnya</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-comment-alt"></i></span>
                             <input type="text" class="form-control" id="other_reason" name="other_reason">
                         </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-danger" onclick="return confirmCancellation()">
-                                <i class="fas fa-times-circle me-2"></i>Batalkan Tiket
-                            </button>
-                            {% if not booking_data %}
-                            <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>Kembali ke Tiket
-                            </a>
-                            {% endif %}
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            {% if cancel_history %}
-            <div class="card mt-4 shadow">
-                <div class="card-header bg-info text-white">
-                    <h4 class="mb-0">Riwayat Pembatalan</h4>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Booking ID</th>
-                                    <th>Penumpang</th>
-                                    <th>Rute</th>
-                                    <th>Tanggal Batal</th>
-                                    <th>Alasan</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in cancel_history %}
-                                <tr>
-                                    <td>{{ item.booking_id }}</td>
-                                    <td>{{ item.passenger_name }}</td>
-                                    <td>{{ item.origin }} → {{ item.destination }}</td>
-                                    <td>{{ item.canceled_on }}</td>
-                                    <td>{{ item.reason }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
                     </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg" onclick="return confirmCancellation()">
+                            <i class="fas fa-times-circle me-2"></i>Batalkan Tiket
+                        </button>
+                        {% if not booking_data %}
+                        <a href="{{ url_for('tickets') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Kembali ke Tiket
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if cancel_history %}
+        <div class="card mt-4 shadow">
+            <div class="card-header">
+                <i class="fas fa-history me-2"></i>Riwayat Pembatalan
+            </div>
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Penumpang</th>
+                                <th>Rute</th>
+                                <th>Tanggal Batal</th>
+                                <th>Alasan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in cancel_history %}
+                            <tr>
+                                <td>{{ item.booking_id }}</td>
+                                <td>{{ item.passenger_name }}</td>
+                                <td>{{ item.origin }} → {{ item.destination }}</td>
+                                <td>{{ item.canceled_on }}</td>
+                                <td>{{ item.reason }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 </div>
 
@@ -155,26 +170,4 @@ document.getElementById('reason').addEventListener('change', function() {
     }
 });
 </script>
-
-<style>
-.alert {
-    border-left: 4px solid #0dcaf0;
-}
-
-.alert i {
-    margin-right: 8px;
-}
-
-.btn-danger {
-    transition: all 0.3s ease;
-}
-
-.btn-danger:hover {
-    transform: scale(1.02);
-}
-
-.table td {
-    vertical-align: middle;
-}
-</style>
 {% endblock %}
